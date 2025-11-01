@@ -25,7 +25,7 @@
             } catch (Exception ignore) { }
             if ("inactive".equals(sessionErr)) {
         %>
-            <div class="login-error">Cuenta desactivada. Contacta al Administrador.</div>
+            <div class="login-error">Cuenta desactivada. Contacta al administrador.</div>
         <%
             }
         %>
