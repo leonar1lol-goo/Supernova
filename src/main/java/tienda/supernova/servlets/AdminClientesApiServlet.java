@@ -138,26 +138,47 @@ public class AdminClientesApiServlet extends HttpServlet {
                 }
             } else if ("update".equalsIgnoreCase(action)) {
                 String id = req.getParameter("id");
-                String nombre = req.getParameter("nombre");
-                String direccion = req.getParameter("direccion");
                 String telefono = req.getParameter("telefono");
                 String email = req.getParameter("email");
-                String update = "UPDATE cliente SET nombre = ?, direccion = ?, telefono = ?, email = ? WHERE id_cliente = ? OR id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(update)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, direccion);
-                    ps.setString(3, telefono);
-                    ps.setString(4, email);
-                    ps.setString(5, id);
-                    ps.setString(6, id);
-                    int affected = ps.executeUpdate();
-                    if (affected > 0) {
-                        resp.getWriter().print("{\"ok\":true}");
-                        return;
+                String[] tables = new String[]{"cliente","Cliente","clientes","Clientes"};
+                String[] phoneCols = new String[]{"telefono","telefono_cliente","tel"};
+                String[] emailCols = new String[]{"email","correo","mail"};
+                String[] idCols = new String[]{"id_cliente","id","id_client","idcliente"};
+                boolean updated = false;
+                for (String t : tables) {
+                    if (updated) break;
+                    for (String pcol : phoneCols) {
+                        if (updated) break;
+                        for (String ecol : emailCols) {
+                            if (updated) break;
+                            for (String idc : idCols) {
+                                String sql = "UPDATE " + t + " SET " + pcol + " = ?, " + ecol + " = ? WHERE " + idc + " = ?";
+                                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                                    ps.setString(1, telefono);
+                                    ps.setString(2, email);
+                                    ps.setString(3, id);
+                                    int affected = ps.executeUpdate();
+                                    if (affected > 0) {
+                                        resp.getWriter().print("{\"ok\":true}");
+                                        updated = true;
+                                        break;
+                                    }
+                                } catch (SQLException ex) {
+                                    String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+                                    if (msg.contains("unknown column") || msg.contains("columna desconocida") || msg.contains("doesn't exist") || msg.contains("no such column") || msg.contains("unknown table") || msg.contains("doesn't exist")) {
+                                        continue;
+                                    }
+                                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                                    return;
+                                }
+                            }
+                        }
                     }
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
-                    return;
                 }
+                if (updated) return;
+                resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                return;
             } else if ("delete".equalsIgnoreCase(action)) {
                 String id = req.getParameter("id");
                 String del = "DELETE FROM cliente WHERE id_cliente = ? OR id = ?";

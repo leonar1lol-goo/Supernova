@@ -38,6 +38,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/></svg>
             <span>Validación de Productos</span>
         </a>
+    <a class="nav-link" href="<%= ctx %>/admin/productos.jsp" data-slug="productos">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z"/></svg>
+            <span>Productos</span>
+        </a>
     <a class="nav-link" href="<%= ctx %>/admin/notifications.jsp" data-slug="notifications">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a6 6 0 0 0-6 6v5l-2 2h16l-2-2V8a6 6 0 0 0-6-6z"/></svg>
             <span>Notificaciones</span>

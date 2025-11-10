@@ -12,9 +12,9 @@
             '<td data-label="Teléfono">'+escapeHtml(c.telefono||'')+'</td>'+
             '<td class="text-center" data-label="Acciones">'+
             '<div class="action-forms">'+
-            '<button class="action-btn btn-edit small-btn" data-id="'+(c.id||'')+'" data-action="view">Ver</button>'+
-            '<button class="action-btn btn-edit small-btn" data-id="'+(c.id||'')+'" data-action="edit">Editar</button>'+
-            '<button class="action-btn btn-danger small-btn" data-id="'+(c.id||'')+'" data-action="delete">Eliminar</button>'+
+            '<button type="button" class="action-btn btn-edit small-btn" data-id="'+(c.id||'')+'" data-action="view">Ver</button>'+
+            '<button type="button" class="action-btn btn-edit small-btn" data-id="'+(c.id||'')+'" data-action="edit">Editar</button>'+
+            '<button type="button" class="action-btn btn-danger small-btn" data-id="'+(c.id||'')+'" data-action="delete">Eliminar</button>'+
             '</div></td>';
         return tr;
     }
@@ -28,13 +28,13 @@
         }).then(function(json){
             if (!Array.isArray(json)){
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td colspan="5" style="text-align:center;color:#666;padding:20px">(Respuesta inesperada del servidor)</td>';
+                tr.innerHTML = '<td colspan="6" style="text-align:center;color:#666;padding:20px">(Respuesta inesperada del servidor)</td>';
                 tbody.appendChild(tr);
                 return;
             }
             if (!json.length){
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td colspan="5" style="text-align:center;color:#666;padding:20px">(No hay clientes cargados)</td>';
+                tr.innerHTML = '<td colspan="6" style="text-align:center;color:#666;padding:20px">(No hay clientes cargados)</td>';
                 tbody.appendChild(tr);
             } else {
                 json.forEach(function(c){ tbody.appendChild(renderRow(c)); });
@@ -42,7 +42,7 @@
         }).catch(function(err){
             console.error('clientes load', err);
             var tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="5" style="text-align:center;color:#c02828;padding:20px">Error cargando clientes</td>';
+            tr.innerHTML = '<td colspan="6" style="text-align:center;color:#c02828;padding:20px">Error cargando clientes</td>';
             tbody.appendChild(tr);
         });
     }
@@ -62,6 +62,44 @@
         ccCancel && ccCancel.addEventListener('click', function(e){ e.preventDefault(); cModal.style.display='none'; });
         ccCreate && ccCreate.addEventListener('click', function(e){ e.preventDefault(); ccCreate.disabled=true; ccCreate.textContent='Creando...'; var p = new URLSearchParams(); p.append('action','create'); p.append('nombre', ccNombre.value || ''); p.append('direccion', ccDireccion.value || ''); p.append('telefono', ccTelefono.value || ''); p.append('email', ccEmail.value || ''); fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ cModal.style.display='none'; globalShowToast('Cliente creado','success'); load(); } else { globalShowToast('Error al crear cliente: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('create client',err); globalShowToast && globalShowToast('Error al crear cliente','error'); }).finally(function(){ ccCreate.disabled=false; ccCreate.textContent='Crear'; });
         });
-        document.body.addEventListener('click', function(e){ var btn = e.target.closest('button[data-action]'); if(!btn) return; var action = btn.getAttribute('data-action'); var id = btn.getAttribute('data-id'); if (action === 'delete'){ openGlobalConfirm('Eliminar cliente?', function(){ var p = new URLSearchParams(); p.append('action','delete'); p.append('id', id); fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ globalShowToast('Cliente eliminado','success'); load(); } else { globalShowToast('Error al eliminar cliente','error'); } }).catch(function(err){ console.error('delete client',err); globalShowToast('Error al eliminar cliente','error'); }); }); } else if (action === 'edit'){ var modal = document.getElementById('editClientModal'); var ecId = document.getElementById('ecId'); var ecNombre = document.getElementById('ecNombre'); var ecDireccion = document.getElementById('ecDireccion'); var ecTelefono = document.getElementById('ecTelefono'); var ecEmail = document.getElementById('ecEmail'); var ecCancel = document.getElementById('ecCancel'); var ecSave = document.getElementById('ecSave'); var tr = btn.closest('tr'); ecId.value = id; ecNombre.value = tr.children[1].textContent.trim(); ecDireccion.value = tr.children[2].textContent.trim(); ecEmail.value = tr.children[3].textContent.trim(); ecTelefone = tr.children[4] ? tr.children[4].textContent.trim() : ''; document.getElementById('ecTelefono').value = ecTelefone; modal.style.display = 'flex'; ecCancel.onclick = function(ev){ ev.preventDefault(); modal.style.display='none'; }; ecSave.onclick = function(ev){ ev.preventDefault(); ecSave.disabled=true; ecSave.textContent='Guardando...'; var p = new URLSearchParams(); p.append('action','update'); p.append('id', ecId.value || ''); p.append('nombre', ecNombre.value || ''); p.append('direccion', ecDireccion.value || ''); p.append('telefono', ecTelefono || ''); p.append('email', ecEmail.value || ''); fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ modal.style.display='none'; globalShowToast('Cliente actualizado','success'); load(); } else { globalShowToast('Error al actualizar cliente','error'); } }).catch(function(err){ console.error('update client',err); globalShowToast('Error al actualizar cliente','error'); }).finally(function(){ ecSave.disabled=false; ecSave.textContent='Guardar'; }); }; } });
+        document.body.addEventListener('click', function(e){
+            var btn = e.target.closest('button[data-action]');
+            if(!btn) return;
+            var action = btn.getAttribute('data-action');
+            var id = btn.getAttribute('data-id');
+            if (action === 'delete'){
+                openGlobalConfirm('Eliminar cliente?', function(){
+                    var p = new URLSearchParams();
+                    p.append('action','delete');
+                    p.append('id', id);
+                    fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ globalShowToast('Cliente eliminado','success'); load(); } else { globalShowToast('Error al eliminar cliente','error'); } }).catch(function(err){ console.error('delete client',err); globalShowToast('Error al eliminar cliente','error'); });
+                });
+            } else if (action === 'edit'){
+                var modal = document.getElementById('editClientModal');
+                var ecId = document.getElementById('ecId');
+                var ecTelefono = document.getElementById('ecTelefono');
+                var ecEmail = document.getElementById('ecEmail');
+                var ecCancel = document.getElementById('ecCancel');
+                var ecSave = document.getElementById('ecSave');
+                var tr = btn.closest('tr');
+                ecId.value = id;
+                ecEmail.value = tr.children[3].textContent.trim();
+                var telefonoText = tr.children[4] ? tr.children[4].textContent.trim() : '';
+                ecTelefono.value = telefonoText;
+                modal.style.display = 'flex';
+                ecCancel.onclick = function(ev){ ev.preventDefault(); modal.style.display='none'; };
+                ecSave.onclick = function(ev){
+                    ev.preventDefault();
+                    ecSave.disabled=true;
+                    ecSave.textContent='Guardando...';
+                    var p = new URLSearchParams();
+                    p.append('action','update');
+                    p.append('id', ecId.value || '');
+                    p.append('telefono', ecTelefono.value || '');
+                    p.append('email', ecEmail.value || '');
+                    fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ modal.style.display='none'; globalShowToast('Cliente actualizado','success'); load(); } else { var errMsg = (res && res.error) ? res.error : 'Error al actualizar cliente'; globalShowToast(errMsg,'error'); } }).catch(function(err){ console.error('update client',err); globalShowToast('Error al actualizar cliente','error'); }).finally(function(){ ecSave.disabled=false; ecSave.textContent='Guardar'; });
+                };
+            }
+        });
     });
 })();

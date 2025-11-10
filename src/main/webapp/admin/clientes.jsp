@@ -95,14 +95,7 @@
             <h3>Editar cliente</h3>
             <div class="register-container">
                 <input id="ecId" type="hidden" />
-                <div class="form-row">
-                    <label for="ecNombre">Nombre</label>
-                    <input id="ecNombre" type="text" />
-                </div>
-                <div class="form-row">
-                    <label for="ecDireccion">Dirección</label>
-                    <input id="ecDireccion" type="text" />
-                </div>
+                
                 <div class="form-row">
                     <label for="ecTelefono">Teléfono</label>
                     <input id="ecTelefono" type="text" />
