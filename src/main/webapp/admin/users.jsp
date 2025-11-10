@@ -64,60 +64,88 @@
 
     <script>window.APP_CTX = '<%= ctx %>';</script>
     <div id="editUserModal" class="modal-backdrop" style="display:none;align-items:center;justify-content:center;z-index:1200">
-        <div class="modal" role="dialog" aria-modal="true" style="width:420px;max-width:calc(100% - 32px);">
-            <h3>Editar Usuario</h3>
-            <div class="form-row">
-                <label for="euNombre">Nombre</label>
-                <input id="euNombre" type="text" />
-            </div>
-            <div class="form-row">
-                <label for="euEmail">Email</label>
-                <input id="euEmail" type="email" />
-            </div>
-            <div class="form-row">
-                <label for="euRol">Rol</label>
-                <select id="euRol">
-                    <option value="admin">Administrador</option>
-                    <option value="operario">Operario</option>
-                    <option value="supervisor">Supervisor</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="euPassword">Contraseña (dejar en blanco para no cambiar)</label>
-                <input id="euPassword" type="password" />
-            </div>
-            <div class="actions">
-                <button id="euCancel" class="btn-ghost">Cancelar</button>
-                <button id="euSave" class="btn-save">Guardar</button>
+        <div class="modal" role="dialog" aria-modal="true" style="width:420px;max-width:calc(100% - 32px);padding:22px;border-radius:10px">
+            <h3>Editar usuario</h3>
+            <div class="register-container">
+                <div class="form-row">
+                    <label for="euEmail">Correo electrónico</label>
+                    <input id="euEmail" type="email" />
+                </div>
+                
+                <div class="form-row">
+                    <label for="euRol">Rol</label>
+                    <select id="euRol">
+                        <option value="admin">Administrador</option>
+                        <option value="operario">Operario</option>
+                        <option value="supervisor">Supervisor</option>
+                    </select>
+                </div>
+                <div class="form-row" style="position:relative">
+                    <label for="euPassword">Contraseña (dejar en blanco para no cambiar)</label>
+                    <input id="euPassword" type="password" />
+                    <button id="euToggleEditPw" type="button" style="position:absolute;right:8px;top:36px;background:transparent;border:0;cursor:pointer" aria-label="Mostrar contraseña">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5c-7 0-11 6-11 7s4 7 11 7 11-6 11-7-4-7-11-7z" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="#6b7280" stroke-width="1.2"/></svg>
+                    </button>
+                </div>
+                <div class="password-rules" style="margin-top:6px">
+                    <div class="rule" id="eruleLength">Al menos 8 caracteres</div>
+                    <div class="rule" id="eruleUpper">Al menos una letra mayúscula</div>
+                    <div class="rule" id="eruleLower">Al menos una letra minúscula</div>
+                    <div class="rule" id="eruleSpecial">Al menos un carácter especial</div>
+                    <div class="rule" id="eruleNumber">Al menos un número</div>
+                </div>
+                <div class="actions" style="margin-top:14px">
+                    <button id="euCancel" class="btn-ghost">Cancelar</button>
+                    <button id="euSave" class="btn-save">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
     <div id="createUserModal" class="modal-backdrop" style="display:none;align-items:center;justify-content:center;z-index:1200">
-        <div class="modal" role="dialog" aria-modal="true" style="width:420px;max-width:calc(100% - 32px);">
-            <h3>Nuevo Usuario</h3>
-            <div class="form-row">
-                <label for="cuNombre">Nombre</label>
-                <input id="cuNombre" type="text" />
-            </div>
-            <div class="form-row">
-                <label for="cuEmail">Email</label>
-                <input id="cuEmail" type="email" />
-            </div>
-            <div class="form-row">
-                <label for="cuRol">Rol</label>
-                <select id="cuRol">
-                    <option value="admin">Administrador</option>
-                    <option value="operario">Operario</option>
-                    <option value="supervisor">Supervisor</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="cuPassword">Contraseña</label>
-                <input id="cuPassword" type="password" />
-            </div>
-            <div class="actions">
-                <button id="cuCancel" class="btn-ghost">Cancelar</button>
-                <button id="cuCreate" class="btn-save">Crear</button>
+        <div class="modal" role="dialog" aria-modal="true" style="width:420px;max-width:calc(100% - 32px);padding:22px;border-radius:10px">
+            <h3>Crear nueva cuenta</h3>
+            <div class="register-container">
+                <div class="form-row">
+                    <label for="cuEmail">Correo electrónico</label>
+                    <input id="cuEmail" type="email" placeholder="tucorreo@ejemplo.com" />
+                </div>
+                <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div>
+                        <label for="cuFirstName">Nombre(s)</label>
+                        <input id="cuFirstName" type="text" />
+                    </div>
+                    <div>
+                        <label for="cuLastName">Apellido(s)</label>
+                        <input id="cuLastName" type="text" />
+                    </div>
+                </div>
+                <div class="form-row" style="position:relative">
+                    <label for="cuPassword">Contraseña</label>
+                    <input id="cuPassword" type="password" />
+                    <button id="cuTogglePw" type="button" style="position:absolute;right:8px;top:36px;background:transparent;border:0;cursor:pointer" aria-label="Mostrar contraseña">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5c-7 0-11 6-11 7s4 7 11 7 11-6 11-7-4-7-11-7z" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="#6b7280" stroke-width="1.2"/></svg>
+                    </button>
+                </div>
+                <div class="password-rules" style="margin-top:6px">
+                    <div class="rule" id="ruleLength">Al menos 8 caracteres</div>
+                    <div class="rule" id="ruleUpper">Al menos una letra mayúscula</div>
+                    <div class="rule" id="ruleLower">Al menos una letra minúscula</div>
+                    <div class="rule" id="ruleSpecial">Al menos un carácter especial</div>
+                    <div class="rule" id="ruleNumber">Al menos un número</div>
+                </div>
+                <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+                    <div style="flex:1">
+                        <select id="cuRol" style="width:100%;padding:10px;border:1px solid #e6e9ee;border-radius:8px">
+                            <option value="admin">Administrador</option>
+                            <option value="operario">Operario</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="actions" style="margin-top:14px">
+                    <button id="cuCancel" class="btn-ghost">Cancelar</button>
+                    <button id="cuCreate" class="btn-save" disabled style="background:#f97316;border:0;color:#fff;padding:12px 16px;border-radius:10px">Aceptar y registrarse</button>
+                </div>
             </div>
         </div>
     </div>
