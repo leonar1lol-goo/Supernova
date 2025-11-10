@@ -25,6 +25,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
             <span>Gestionar Usuarios</span>
         </a>
+    <a class="nav-link" href="<%= ctx %>/admin/clientes.jsp" data-slug="clientes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zM5 9h14v10H5z"/></svg>
+            <span>Clientes</span>
+        </a>
     <% } %>
     <a class="nav-link" href="<%= ctx %>/admin/route-optimization.jsp" data-slug="route-optimization">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v6l4 2v6l-4 2v6"/></svg>
