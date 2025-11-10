@@ -28,10 +28,12 @@ public class AdminProductosApiServlet extends HttpServlet {
 
         resp.setContentType("application/json;charset=UTF-8");
         String[] queries = new String[]{
-            "SELECT id_producto AS id, nombre AS nombre, codigo_barra, categoria, stock FROM producto",
-            "SELECT id_producto AS id, nombre AS nombre, codigo_barra, categoria, stock FROM Producto",
-            "SELECT id AS id, nombre AS nombre, codigo_barra, categoria, stock FROM productos",
-            "SELECT id AS id, nombre_producto AS nombre, codigo_barra, categoria, stock FROM productos"
+            "SELECT id_producto AS id, nombre AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM producto",
+            "SELECT producto_id AS id, nombre AS nombre, codigo_barras AS codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM producto",
+            "SELECT id_producto AS id, nombre AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM Producto",
+            "SELECT producto_id AS id, nombre AS nombre, codigo_barras AS codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM Producto",
+            "SELECT id AS id, nombre AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM productos",
+            "SELECT id AS id, nombre_producto AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM productos"
         };
 
         StringBuilder sb = new StringBuilder();
@@ -53,18 +55,40 @@ public class AdminProductosApiServlet extends HttpServlet {
                         try { categoria = rs.getString("categoria"); } catch (Exception ex) { categoria = null; }
                         String stock = null;
                         try { stock = rs.getString("stock"); } catch (Exception ex) { stock = null; }
+                        String sku = null;
+                        try { sku = rs.getString("sku"); } catch (Exception ex) { sku = null; }
+                        String descripcion = null;
+                        try { descripcion = rs.getString("descripcion"); } catch (Exception ex) { descripcion = null; }
+                        String marca = null;
+                        try { marca = rs.getString("marca"); } catch (Exception ex) { marca = null; }
+                        String unidad = null;
+                        try { unidad = rs.getString("unidad_medida"); } catch (Exception ex) { unidad = null; }
+                        String precio = null;
+                        try { precio = rs.getString("precio"); } catch (Exception ex) { precio = null; }
+                        String categoria_id = null;
+                        try { categoria_id = rs.getString("categoria_id"); } catch (Exception ex) { categoria_id = null; }
+                        String activo = null;
+                        try { activo = rs.getString("activo"); } catch (Exception ex) { activo = null; }
                         sb.append('{');
                         sb.append("\"id\":").append(id).append(',');
                         sb.append("\"nombre\":\"").append(escape(nombre)).append("\",");
                         sb.append("\"codigo_barra\":\"").append(escape(codigo)).append("\",");
                         sb.append("\"categoria\":\"").append(escape(categoria)).append("\",");
-                        sb.append("\"stock\":\"").append(escape(stock)).append("\"");
+                        sb.append("\"stock\":\"").append(escape(stock)).append("\",");
+                        sb.append("\"sku\":\"").append(escape(sku)).append("\",");
+                        sb.append("\"descripcion\":\"").append(escape(descripcion)).append("\",");
+                        sb.append("\"marca\":\"").append(escape(marca)).append("\",");
+                        sb.append("\"unidad_medida\":\"").append(escape(unidad)).append("\",");
+                        sb.append("\"precio\":\"").append(escape(precio)).append("\",");
+                        sb.append("\"categoria_id\":\"").append(escape(categoria_id)).append("\",");
+                        sb.append("\"activo\":\"").append(escape(activo)).append("\"");
                         sb.append('}');
                     }
                     break;
                 } catch (SQLException ex) {
                     String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
-                    if (msg.contains("unknown table") || msg.contains("doesn't exist") || msg.contains("no such table")) {
+                    if (msg.contains("unknown table") || msg.contains("doesn't exist") || msg.contains("no such table")
+                            || msg.contains("unknown column") || msg.contains("no such column") || msg.contains("column not found")) {
                         continue;
                     }
                     throw ex;
@@ -77,7 +101,9 @@ public class AdminProductosApiServlet extends HttpServlet {
             }
         } catch (SQLException e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().print("{\"error\":\"db\"}");
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            resp.getWriter().print("{\"error\":\"db\",\"message\":\"" + escape(msg) + "\"}");
+            e.printStackTrace();
             return;
         }
 

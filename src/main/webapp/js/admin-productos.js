@@ -17,7 +17,13 @@
         tbody.innerHTML = '';
         var base = window.APP_CTX || '';
         fetch(base + '/admin/api/productos', {cache:'no-store'}).then(function(r){
-            if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+(t||r.statusText)); });
+            if (!r.ok) return r.text().then(function(t){
+                try { console.error('productos load HTTP', r.status, t); } catch(e){}
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="5" style="text-align:center;color:#c02828;padding:20px">Error cargando productos: '+escapeHtml(t||r.statusText)+'</td>';
+                tbody.appendChild(tr);
+                throw new Error('HTTP '+r.status+': '+(t||r.statusText));
+            });
             return r.json();
         }).then(function(json){
             if (!Array.isArray(json)){
