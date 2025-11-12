@@ -10,7 +10,16 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.math.BigDecimal;
+import java.sql.DatabaseMetaData;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @WebServlet("/admin/api/productos")
 public class AdminProductosApiServlet extends HttpServlet {
@@ -27,7 +36,7 @@ public class AdminProductosApiServlet extends HttpServlet {
         }
 
         resp.setContentType("application/json;charset=UTF-8");
-        String[] queries = new String[]{
+        String[] queries = new String[] {
             "SELECT id_producto AS id, nombre AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM producto",
             "SELECT producto_id AS id, nombre AS nombre, codigo_barras AS codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM producto",
             "SELECT id_producto AS id, nombre AS nombre, codigo_barra, sku, descripcion, marca, unidad_medida, precio, categoria_id, activo, categoria, stock FROM Producto",
@@ -40,61 +49,70 @@ public class AdminProductosApiServlet extends HttpServlet {
         sb.append('[');
         boolean first = true;
         try (Connection conn = DBConnection.getConnection()) {
-            boolean executed = false;
+            boolean anyExecuted = false;
+            Set<String> seen = new HashSet<>();
             for (String q : queries) {
                 try (PreparedStatement ps = conn.prepareStatement(q); ResultSet rs = ps.executeQuery()) {
-                    executed = true;
+                    anyExecuted = true;
                     while (rs.next()) {
+                        ResultSetMetaData md = rs.getMetaData();
+                        int cols = md.getColumnCount();
+                        Map<String,String> row = new LinkedHashMap<>();
+                        for (int c = 1; c <= cols; c++) {
+                            String colLabel = md.getColumnLabel(c);
+                            Object o = null;
+                            try { o = rs.getObject(c); } catch (Exception ex) { o = null; }
+                            String val = o == null ? "" : o.toString();
+                            row.put(colLabel == null ? ("col"+c) : colLabel, val);
+                        }
+                        String idVal = firstNonEmpty(row, "id","producto_id","productoid","productoId","product_id","producto");
+                        if (idVal == null) idVal = "";
+                        String uniqueKey = idVal.isEmpty() ? row.toString() : idVal;
+                        if (seen.contains(uniqueKey)) continue;
+                        seen.add(uniqueKey);
                         if (!first) sb.append(',');
                         first = false;
-                        int id = rs.getInt("id");
-                        String nombre = rs.getString("nombre");
-                        String codigo = null;
-                        try { codigo = rs.getString("codigo_barra"); } catch (Exception ex) { codigo = null; }
-                        String categoria = null;
-                        try { categoria = rs.getString("categoria"); } catch (Exception ex) { categoria = null; }
-                        String stock = null;
-                        try { stock = rs.getString("stock"); } catch (Exception ex) { stock = null; }
-                        String sku = null;
-                        try { sku = rs.getString("sku"); } catch (Exception ex) { sku = null; }
-                        String descripcion = null;
-                        try { descripcion = rs.getString("descripcion"); } catch (Exception ex) { descripcion = null; }
-                        String marca = null;
-                        try { marca = rs.getString("marca"); } catch (Exception ex) { marca = null; }
-                        String unidad = null;
-                        try { unidad = rs.getString("unidad_medida"); } catch (Exception ex) { unidad = null; }
-                        String precio = null;
-                        try { precio = rs.getString("precio"); } catch (Exception ex) { precio = null; }
-                        String categoria_id = null;
-                        try { categoria_id = rs.getString("categoria_id"); } catch (Exception ex) { categoria_id = null; }
-                        String activo = null;
-                        try { activo = rs.getString("activo"); } catch (Exception ex) { activo = null; }
+                        Map<String,String> out = new LinkedHashMap<>();
+                        out.put("id", idVal);
+                        out.put("nombre", firstNonEmpty(row, "nombre","nombre_producto","nombreproducto","name"));
+                        out.put("codigo_barra", firstNonEmpty(row, "codigo_barra","codigo_barras","codigo","codigo_barras"));
+                        out.put("categoria", firstNonEmpty(row, "categoria","categoria_nombre","category"));
+                        out.put("stock", firstNonEmpty(row, "stock"));
+                        for (Map.Entry<String,String> e : row.entrySet()) {
+                            String k = e.getKey();
+                            if (k == null) continue;
+                            String kl = k.toLowerCase();
+                            if (kl.equals("id") || kl.equals("producto_id") || kl.equals("productoid") || kl.equals("product_id") || kl.equals("nombre") || kl.contains("nombre") || kl.contains("codigo") || kl.contains("categoria") || kl.equals("stock")) continue;
+                            out.put(k, e.getValue());
+                        }
                         sb.append('{');
-                        sb.append("\"id\":").append(id).append(',');
-                        sb.append("\"nombre\":\"").append(escape(nombre)).append("\",");
-                        sb.append("\"codigo_barra\":\"").append(escape(codigo)).append("\",");
-                        sb.append("\"categoria\":\"").append(escape(categoria)).append("\",");
-                        sb.append("\"stock\":\"").append(escape(stock)).append("\",");
-                        sb.append("\"sku\":\"").append(escape(sku)).append("\",");
-                        sb.append("\"descripcion\":\"").append(escape(descripcion)).append("\",");
-                        sb.append("\"marca\":\"").append(escape(marca)).append("\",");
-                        sb.append("\"unidad_medida\":\"").append(escape(unidad)).append("\",");
-                        sb.append("\"precio\":\"").append(escape(precio)).append("\",");
-                        sb.append("\"categoria_id\":\"").append(escape(categoria_id)).append("\",");
-                        sb.append("\"activo\":\"").append(escape(activo)).append("\"");
+                        int i = 0;
+                        for (Map.Entry<String,String> e : out.entrySet()) {
+                            String k = e.getKey();
+                            String v = e.getValue() == null ? "" : e.getValue();
+                            sb.append('"').append(escape(k)).append('"').append(':');
+                            if (isNumeric(v) && !k.equalsIgnoreCase("codigo_barra") && !k.toLowerCase().contains("codigo")) {
+                                sb.append(v);
+                            } else {
+                                sb.append('"').append(escape(v)).append('"');
+                            }
+                            if (++i < out.size()) sb.append(',');
+                        }
                         sb.append('}');
                     }
-                    break;
                 } catch (SQLException ex) {
                     String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
                     if (msg.contains("unknown table") || msg.contains("doesn't exist") || msg.contains("no such table")
-                            || msg.contains("unknown column") || msg.contains("no such column") || msg.contains("column not found")) {
+                            || msg.contains("unknown column") || msg.contains("no such column") || msg.contains("column not found")
+                            || msg.contains("references invalid") || (msg.contains("view") && msg.contains("invalid"))) {
                         continue;
                     }
                     throw ex;
+                } catch (Exception ex) {
+                    continue;
                 }
             }
-            if (!first || executed) {
+            if (!first || anyExecuted) {
                 sb.append(']');
                 resp.getWriter().print(sb.toString());
                 return;
@@ -105,15 +123,79 @@ public class AdminProductosApiServlet extends HttpServlet {
             resp.getWriter().print("{\"error\":\"db\",\"message\":\"" + escape(msg) + "\"}");
             e.printStackTrace();
             return;
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            resp.getWriter().print("{\"error\":\"internal\",\"message\":\"" + escape(msg) + "\"}");
+            e.printStackTrace();
+            return;
         }
 
         sb.append(']');
         resp.getWriter().print(sb.toString());
     }
 
+    private String[] findTableAndIdColumn(Connection conn, String[] tableNames, String[] idCols, String id) throws SQLException {
+        if (conn == null || tableNames == null || idCols == null) return null;
+        DatabaseMetaData meta = conn.getMetaData();
+        for (String tbl : tableNames) {
+            if (tbl == null) continue;
+            List<String> cols = new ArrayList<>();
+            try (ResultSet crs = meta.getColumns(null, null, tbl, null)) {
+                while (crs.next()) {
+                    String cn = crs.getString("COLUMN_NAME");
+                    if (cn != null) cols.add(cn.toLowerCase());
+                }
+            } catch (SQLException ex) {
+                continue;
+            }
+            if (cols.isEmpty()) continue;
+            for (String idc : idCols) {
+                if (idc == null) continue;
+                if (!cols.contains(idc.toLowerCase())) continue;
+                String sql = "SELECT 1 FROM " + tbl + " WHERE " + idc + " = ? LIMIT 1";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs != null && rs.next()) {
+                            return new String[]{tbl, idc};
+                        }
+                    }
+                } catch (SQLException ex) {
+                    continue;
+                }
+            }
+        }
+        return null;
+    }
+
     private String escape(String s) {
         if (s == null) return "";
         return s.replace("\\","\\\\").replace("\"","\\\"").replace("\n","\\n").replace("\r","\\r");
+    }
+
+    private boolean isNumeric(String s) {
+        if (s == null || s.length() == 0) return false;
+        try {
+            new BigDecimal(s);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String firstNonEmpty(Map<String,String> map, String... keys) {
+        if (map == null || keys == null) return "";
+        for (String k : keys) {
+            if (k == null) continue;
+            String v = map.get(k);
+            if (v != null && v.length() > 0) return v;
+            v = map.get(k.toLowerCase());
+            if (v != null && v.length() > 0) return v;
+            v = map.get(k.toUpperCase());
+            if (v != null && v.length() > 0) return v;
+        }
+        return "";
     }
 
     @Override
@@ -164,68 +246,143 @@ public class AdminProductosApiServlet extends HttpServlet {
                 }
             } else if ("update".equalsIgnoreCase(action)) {
                 String id = req.getParameter("id");
-                String nombre = req.getParameter("nombre");
-                String codigo = req.getParameter("codigo_barra");
-                String categoria = req.getParameter("categoria");
-                String stock = req.getParameter("stock");
-                String update = "UPDATE producto SET nombre = ?, codigo_barra = ?, categoria = ?, stock = ? WHERE id_producto = ? OR id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(update)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, codigo);
-                    ps.setString(3, categoria);
-                    ps.setString(4, stock);
-                    ps.setString(5, id);
-                    ps.setString(6, id);
-                    int affected = ps.executeUpdate();
-                    if (affected > 0) {
-                        resp.getWriter().print("{\"ok\":true}");
+                String[] tableNames = new String[]{"producto","productos","Producto","Productos"};
+                String[] idCols = new String[]{"id_producto","producto_id","id","productoid","product_id"};
+                try {
+                    String[] found = findTableAndIdColumn(conn, tableNames, idCols, id);
+                    if (found == null) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
                         return;
                     }
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                    String tbl = found[0];
+                    String idCol = found[1];
+                    DatabaseMetaData meta = conn.getMetaData();
+                    java.util.Map<String,String> colsMap = new java.util.HashMap<>();
+                    try (ResultSet crs = meta.getColumns(null, null, tbl, null)) {
+                        while (crs.next()) {
+                            String cn = crs.getString("COLUMN_NAME");
+                            if (cn != null) colsMap.put(cn.toLowerCase(), cn);
+                        }
+                    }
+                    List<String> toUpdate = new ArrayList<>();
+                    java.util.Map<String,String[]> params = req.getParameterMap();
+                    for (String p : params.keySet()) {
+                        if (p == null) continue;
+                        String pl = p.toLowerCase();
+                        if (pl.equals("action") || pl.equals("id")) continue;
+                        if (colsMap.containsKey(pl)) {
+                            toUpdate.add(colsMap.get(pl));
+                        }
+                    }
+                    if (toUpdate.isEmpty()) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_supported\"}");
+                        return;
+                    }
+                    StringBuilder set = new StringBuilder();
+                    for (int i = 0; i < toUpdate.size(); i++) {
+                        if (i > 0) set.append(",");
+                        set.append(toUpdate.get(i)).append(" = ?");
+                    }
+                    String update = "UPDATE " + tbl + " SET " + set.toString() + " WHERE " + idCol + " = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(update)) {
+                        int idx = 1;
+                        for (String colName : toUpdate) {
+                            String paramVal = req.getParameter(colName);
+                            if (paramVal == null) paramVal = req.getParameter(colName.toLowerCase());
+                            ps.setString(idx++, paramVal == null ? "" : paramVal);
+                        }
+                        ps.setString(idx, id);
+                        int affected = ps.executeUpdate();
+                        if (affected > 0) {
+                            resp.getWriter().print("{\"ok\":true,\"table\":\""+tbl+"\"}");
+                            return;
+                        }
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                        return;
+                    }
+                } catch (SQLException ex) {
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
                     return;
                 }
             } else if ("delete".equalsIgnoreCase(action)) {
                 String id = req.getParameter("id");
-                String del = "DELETE FROM producto WHERE id_producto = ? OR id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(del)) {
-                    ps.setString(1, id);
-                    ps.setString(2, id);
-                    int affected = ps.executeUpdate();
-                    if (affected > 0) {
-                        resp.getWriter().print("{\"ok\":true}");
+                String[] tableNames = new String[]{"producto","productos","Producto","Productos"};
+                String[] idCols = new String[]{"id_producto","producto_id","id","productoid","product_id"};
+                try {
+                    String[] found = findTableAndIdColumn(conn, tableNames, idCols, id);
+                    if (found != null) {
+                        String tbl = found[0];
+                        String idCol = found[1];
+                        String del = "DELETE FROM " + tbl + " WHERE " + idCol + " = ?";
+                        try (PreparedStatement ps = conn.prepareStatement(del)) {
+                            ps.setString(1, id);
+                            int affected = ps.executeUpdate();
+                            if (affected > 0) {
+                                resp.getWriter().print("{\"ok\":true,\"table\":\""+tbl+"\"}");
+                                return;
+                            }
+                            resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                            return;
+                        }
+                    } else {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
                         return;
                     }
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                } catch (SQLException ex) {
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
                     return;
                 }
             } else if ("toggle".equalsIgnoreCase(action)) {
                 String id = req.getParameter("id");
                 String[] flagCols = new String[]{"activo","enabled","activo_producto","estado"};
-                boolean toggled = false;
-                for (String col : flagCols) {
-                    String sql = "UPDATE producto SET " + col + " = CASE WHEN " + col + " = 1 THEN 0 ELSE 1 END WHERE id_producto = ? OR id = ?";
-                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                        ps.setString(1, id);
-                        ps.setString(2, id);
-                        int affected = ps.executeUpdate();
-                        if (affected > 0) {
-                            resp.getWriter().print("{\"ok\":true}");
-                            toggled = true;
-                            break;
-                        }
-                    } catch (SQLException ex) {
-                        String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
-                        if (msg.contains("unknown column") || msg.contains("doesn't exist") || msg.contains("no such column") || msg.contains("unknown table")) {
-                            continue;
-                        }
-                        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                String[] tableNames = new String[]{"producto","productos","Producto","Productos"};
+                String[] idCols = new String[]{"id_producto","producto_id","id","productoid","product_id"};
+                try {
+                    String[] found = findTableAndIdColumn(conn, tableNames, idCols, id);
+                    if (found == null) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_supported\"}");
                         return;
                     }
+                    String tbl = found[0];
+                    String idCol = found[1];
+                    DatabaseMetaData meta = conn.getMetaData();
+                    List<String> cols = new ArrayList<>();
+                    try (ResultSet crs = meta.getColumns(null, null, tbl, null)) {
+                        while (crs.next()) {
+                            String cn = crs.getString("COLUMN_NAME");
+                            if (cn != null) cols.add(cn.toLowerCase());
+                        }
+                    }
+                    String foundFlag = null;
+                    for (String fc : flagCols) {
+                        if (cols.contains(fc.toLowerCase())) { foundFlag = fc; break; }
+                    }
+                    if (foundFlag == null) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_supported\"}");
+                        return;
+                    }
+                    String sql = "UPDATE " + tbl + " SET " + foundFlag + " = CASE WHEN " + foundFlag + " = 1 THEN 0 ELSE 1 END WHERE " + idCol + " = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        if (isNumeric(id)) {
+                            try { ps.setLong(1, Long.parseLong(id)); } catch (Exception ex) { ps.setString(1, id); }
+                        } else {
+                            ps.setString(1, id);
+                        }
+                        int affected = ps.executeUpdate();
+                        if (affected > 0) {
+                            resp.getWriter().print("{\"ok\":true,\"table\":\""+tbl+"\"}");
+                            return;
+                        }
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
+                        return;
+                    }
+                } catch (SQLException ex) {
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                    return;
                 }
-                if (toggled) return;
-                resp.getWriter().print("{\"ok\":false,\"error\":\"not_supported\"}");
-                return;
             } else {
                 resp.getWriter().print("{\"ok\":false,\"error\":\"unknown action\"}");
                 return;
