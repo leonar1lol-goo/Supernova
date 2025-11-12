@@ -59,6 +59,10 @@
         var ccCancel = document.getElementById('ccCancel');
         var ccCreate = document.getElementById('ccCreate');
         if (btnNew) btnNew.addEventListener('click', function(e){ e.preventDefault(); ccNombre.value=''; ccDireccion.value=''; ccTelefono.value=''; ccEmail.value=''; cModal.style.display='flex'; });
+        try {
+            var sp = new URLSearchParams(window.location.search || '');
+            if (sp.get('new') === '1') { if (btnNew) { setTimeout(function(){ try{ btnNew.click(); }catch(e){} }, 50); } }
+        } catch(e) {}
         ccCancel && ccCancel.addEventListener('click', function(e){ e.preventDefault(); cModal.style.display='none'; });
         ccCreate && ccCreate.addEventListener('click', function(e){ e.preventDefault(); ccCreate.disabled=true; ccCreate.textContent='Creando...'; var p = new URLSearchParams(); p.append('action','create'); p.append('nombre', ccNombre.value || ''); p.append('direccion', ccDireccion.value || ''); p.append('telefono', ccTelefono.value || ''); p.append('email', ccEmail.value || ''); fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ cModal.style.display='none'; globalShowToast('Cliente creado','success'); load(); } else { globalShowToast('Error al crear cliente: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('create client',err); globalShowToast && globalShowToast('Error al crear cliente','error'); }).finally(function(){ ccCreate.disabled=false; ccCreate.textContent='Crear'; });
         });

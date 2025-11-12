@@ -139,16 +139,57 @@
     if (input) input.addEventListener('input', function(){ var q = this.value.toLowerCase(); $all('#productsTable tbody tr').forEach(function(r){ var text = r.textContent.toLowerCase(); r.style.display = text.indexOf(q) !== -1 ? '' : 'none'; }); });
         var btnNew = document.getElementById('btnNewProduct');
         var pModal = document.getElementById('createProductModal');
-        var pcNombre = document.getElementById('pcNombre');
-        var pcCodigo = document.getElementById('pcCodigo');
-        var pcCategoria = document.getElementById('pcCategoria');
-        var pcStock = document.getElementById('pcStock');
         var pcCancel = document.getElementById('pcCancel');
         var pcCreate = document.getElementById('pcCreate');
-        if (btnNew) btnNew.addEventListener('click', function(e){ e.preventDefault(); pcNombre.value=''; pcCodigo.value=''; pcCategoria.value=''; pcStock.value='0'; pModal.style.display='flex'; });
-        pcCancel && pcCancel.addEventListener('click', function(e){ e.preventDefault(); pModal.style.display='none'; });
-        pcCreate && pcCreate.addEventListener('click', function(e){ e.preventDefault(); pcCreate.disabled=true; pcCreate.textContent='Creando...'; var p = new URLSearchParams(); p.append('action','create'); p.append('nombre', pcNombre.value || ''); p.append('codigo_barra', pcCodigo.value || ''); p.append('categoria', pcCategoria.value || ''); p.append('stock', pcStock.value || '0'); fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ pModal.style.display='none'; globalShowToast('Producto creado','success'); load(); } else { globalShowToast('Error al crear producto: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('create product',err); globalShowToast && globalShowToast('Error al crear producto','error'); }).finally(function(){ pcCreate.disabled=false; pcCreate.textContent='Crear'; });
+        if (btnNew) btnNew.addEventListener('click', function(e){
+            e.preventDefault();
+            var container = pModal.querySelector('.register-container');
+            var keys = window.PRODUCTS_KEYS || ['nombre','codigo_barra','categoria','stock'];
+            container.innerHTML = '';
+            keys.forEach(function(k){
+                if (k === 'id' || k === 'activo') return;
+                var row = document.createElement('div'); row.className = 'form-row';
+                var label = document.createElement('label'); label.setAttribute('for','pc_'+k);
+                label.textContent = (k === 'codigo_barra' ? 'Código de barra' : (k.replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}))); 
+                var input = document.createElement('input'); input.id = 'pc_'+k; input.name = k;
+                if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) {
+                    input.type = 'number';
+                    input.min = '0';
+                    input.step = '1';
+                    input.value = '0';
+                } else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) {
+                    input.type = 'number';
+                    input.min = '0';
+                    input.step = '0.01';
+                } else {
+                    input.type = 'text';
+                }
+                row.appendChild(label); row.appendChild(input); container.appendChild(row);
+            });
+            var actions = document.createElement('div'); actions.className = 'actions'; actions.style.marginTop = '14px';
+            var btnCancel = document.createElement('button'); btnCancel.className = 'btn-ghost'; btnCancel.textContent = 'Cancelar';
+            var btnCreate = document.createElement('button'); btnCreate.className = 'btn-save'; btnCreate.style.background = '#f97316'; btnCreate.style.border = '0'; btnCreate.style.color = '#fff'; btnCreate.style.padding = '10px 14px'; btnCreate.style.borderRadius = '8px'; btnCreate.textContent = 'Crear';
+            actions.appendChild(btnCancel); actions.appendChild(btnCreate); container.appendChild(actions);
+            pModal.style.display = 'flex';
+            btnCancel.onclick = function(ev){ ev.preventDefault(); pModal.style.display='none'; };
+            btnCreate.onclick = function(ev){
+                ev.preventDefault();
+                for (var i = 0; i < keys.length; i++){
+                    var k = keys[i]; if (k === 'id') continue; var el = document.getElementById('pc_'+k); if (!el) continue;
+                    var val = el.value;
+                    if ((k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) && val !== '') {
+                        var n = parseInt(val,10);
+                        if (isNaN(n) || n < 0) { globalShowToast('Stock debe ser un número entero >= 0','error'); return; }
+                    }
+                    if ((k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) && val !== '') {
+                        var f = parseFloat(val);
+                        if (isNaN(f) || f < 0) { globalShowToast('Precio debe ser un número >= 0','error'); return; }
+                    }
+                }
+                btnCreate.disabled=true; var old = btnCreate.textContent; btnCreate.textContent='Creando...'; var p = new URLSearchParams(); p.append('action','create'); keys.forEach(function(k){ if (k === 'id') return; var el = document.getElementById('pc_'+k); if (!el) return; p.append(k, el.value || ''); }); fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ pModal.style.display='none'; globalShowToast('Producto creado','success'); load(); } else { globalShowToast('Error al crear producto: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('create product',err); globalShowToast && globalShowToast('Error al crear producto','error'); }).finally(function(){ btnCreate.disabled=false; btnCreate.textContent=old; }); };
         });
+        pcCancel && pcCancel.addEventListener('click', function(e){ e.preventDefault(); pModal.style.display='none'; });
+        pcCreate && pcCreate.addEventListener('click', function(e){ e.preventDefault();  });
     document.body.addEventListener('click', function(e){
         var btn = e.target.closest('button[data-action]');
         if(!btn) return;
@@ -173,7 +214,15 @@
                 if (k === 'id' || k === 'activo') return;
                 var row = document.createElement('div'); row.className = 'form-row';
                 var label = document.createElement('label'); label.setAttribute('for','ep_'+k); label.textContent = labels[k] || (k.replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}));
-                var input = document.createElement('input'); input.id = 'ep_'+k; input.name = k; if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('precio') !== -1) input.type = 'number'; else input.type = 'text'; input.value = cellValue(k);
+                var input = document.createElement('input'); input.id = 'ep_'+k; input.name = k;
+                if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) {
+                    input.type = 'number'; input.min = '0'; input.step = '1';
+                } else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) {
+                    input.type = 'number'; input.min = '0'; input.step = '0.01';
+                } else {
+                    input.type = 'text';
+                }
+                input.value = cellValue(k);
                 row.appendChild(label); row.appendChild(input); container.appendChild(row);
             });
             var actions = document.createElement('div'); actions.className = 'actions'; actions.style.marginTop = '14px';
@@ -182,7 +231,24 @@
             actions.appendChild(btnCancel); actions.appendChild(btnSave); container.appendChild(actions);
             modal.style.display = 'flex';
             btnCancel.onclick = function(ev){ ev.preventDefault(); modal.style.display='none'; };
-            btnSave.onclick = function(ev){ ev.preventDefault(); btnSave.disabled=true; var old = btnSave.textContent; btnSave.textContent='Guardando...'; var p = new URLSearchParams(); p.append('action','update'); p.append('id', id); keys.forEach(function(k){ if (k === 'id') return; var el = document.getElementById('ep_'+k); if (!el) return; p.append(k, el.value || ''); }); fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ modal.style.display='none'; globalShowToast('Producto actualizado','success'); load(); } else { globalShowToast('Error al actualizar producto','error'); } }).catch(function(err){ console.error('update product',err); globalShowToast('Error al actualizar producto','error'); }).finally(function(){ btnSave.disabled=false; btnSave.textContent=old; });
+            btnSave.onclick = function(ev){
+                ev.preventDefault();
+                for (var i = 0; i < keys.length; i++){
+                    var k = keys[i]; if (k === 'id') continue; var el = document.getElementById('ep_'+k); if (!el) continue;
+                    var val = el.value;
+                    if ((k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) && val !== '') {
+                        var n = parseInt(val,10);
+                        if (isNaN(n) || n < 0) { globalShowToast('Stock debe ser un número entero >= 0','error'); return; }
+                    }
+                    if ((k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) && val !== '') {
+                        var f = parseFloat(val);
+                        if (isNaN(f) || f < 0) { globalShowToast('Precio debe ser un número >= 0','error'); return; }
+                    }
+                }
+                btnSave.disabled=true; var old = btnSave.textContent; btnSave.textContent='Guardando...';
+                var p = new URLSearchParams(); p.append('action','update'); p.append('id', id);
+                keys.forEach(function(k){ if (k === 'id') return; var el = document.getElementById('ep_'+k); if (!el) return; p.append(k, el.value || ''); });
+                fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ modal.style.display='none'; globalShowToast('Producto actualizado','success'); load(); } else { globalShowToast('Error al actualizar producto: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('update product',err); globalShowToast('Error al actualizar producto','error'); }).finally(function(){ btnSave.disabled=false; btnSave.textContent=old; });
             };
         } else if (action === 'toggle'){
             var p = new URLSearchParams(); p.append('action','toggle'); p.append('id', id);

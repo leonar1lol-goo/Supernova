@@ -219,16 +219,102 @@ public class AdminProductosApiServlet extends HttpServlet {
 
         try (Connection conn = DBConnection.getConnection()) {
             if ("create".equalsIgnoreCase(action)) {
-                String nombre = req.getParameter("nombre");
-                String codigo = req.getParameter("codigo_barra");
-                String categoria = req.getParameter("categoria");
-                String stock = req.getParameter("stock");
-                String insert = "INSERT INTO producto (nombre, codigo_barra, categoria, stock) VALUES (?,?,?,?)";
-                try (PreparedStatement ps = conn.prepareStatement(insert, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, codigo);
-                    ps.setString(3, categoria);
-                    ps.setString(4, stock);
+                String[] tableNames = new String[]{"producto","productos","Producto","Productos"};
+                String[] idCols = new String[]{"id_producto","producto_id","id","productoid","product_id"};
+                String foundTable = null;
+                List<String> tableCols = new ArrayList<>();
+                DatabaseMetaData meta = conn.getMetaData();
+                for (String tbl : tableNames) {
+                    if (tbl == null) continue;
+                    tableCols.clear();
+                    try (ResultSet crs = meta.getColumns(null, null, tbl, null)) {
+                        while (crs.next()) {
+                            String cn = crs.getString("COLUMN_NAME");
+                            if (cn != null) tableCols.add(cn);
+                        }
+                    } catch (SQLException ex) {
+                        continue;
+                    }
+                    if (!tableCols.isEmpty()) { foundTable = tbl; break; }
+                }
+                if (foundTable == null) {
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"no_table\"}");
+                    return;
+                }
+                List<String> toInsert = new ArrayList<>();
+                for (String col : tableCols) {
+                    if (col == null) continue;
+                    String cl = col.toLowerCase();
+                    boolean isId = false;
+                    for (String idc : idCols) { if (idc != null && idc.equalsIgnoreCase(cl)) { isId = true; break; } }
+                    if (isId) continue;
+                    String v = req.getParameter(col);
+                    if (v == null) v = req.getParameter(cl);
+                    if (v != null) {
+                        // validate numeric non-negative fields
+                        try {
+                            if ((cl.contains("stock") || cl.contains("cantidad")) && v.trim().length() > 0) {
+                                int n = Integer.parseInt(v.trim());
+                                if (n < 0) {
+                                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(col)+"\",\"message\":\"Stock debe ser >= 0\"}");
+                                    return;
+                                }
+                            }
+                            if ((cl.contains("precio") || cl.contains("price") || cl.contains("cost")) && v.trim().length() > 0) {
+                                double f = Double.parseDouble(v.trim());
+                                if (f < 0) {
+                                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(col)+"\",\"message\":\"Precio debe ser >= 0\"}");
+                                    return;
+                                }
+                            }
+                        } catch (NumberFormatException nfe) {
+                            resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(col)+"\",\"message\":\"Valor numérico inválido\"}");
+                            return;
+                        }
+                        toInsert.add(col);
+                    }
+                }
+                if (toInsert.isEmpty()) {
+                    String nombre = req.getParameter("nombre");
+                    String codigo = req.getParameter("codigo_barra");
+                    String categoria = req.getParameter("categoria");
+                    String stock = req.getParameter("stock");
+                    String insert = "INSERT INTO producto (nombre, codigo_barra, categoria, stock) VALUES (?,?,?,?)";
+                    try (PreparedStatement ps = conn.prepareStatement(insert, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, nombre);
+                        ps.setString(2, codigo);
+                        ps.setString(3, categoria);
+                        ps.setString(4, stock);
+                        int affected = ps.executeUpdate();
+                        if (affected > 0) {
+                            try (ResultSet gk = ps.getGeneratedKeys()) {
+                                if (gk != null && gk.next()) {
+                                    int id = gk.getInt(1);
+                                    resp.getWriter().print("{\"ok\":true,\"id\":"+id+"}");
+                                    return;
+                                }
+                            }
+                            resp.getWriter().print("{\"ok\":true}");
+                            return;
+                        }
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"no_insert\"}");
+                        return;
+                    }
+                }
+                StringBuilder colsPart = new StringBuilder();
+                StringBuilder valsPart = new StringBuilder();
+                for (int i = 0; i < toInsert.size(); i++) {
+                    if (i > 0) { colsPart.append(','); valsPart.append(','); }
+                    colsPart.append(toInsert.get(i)); valsPart.append('?');
+                }
+                String insertSql = "INSERT INTO " + foundTable + " (" + colsPart.toString() + ") VALUES (" + valsPart.toString() + ")";
+                try (PreparedStatement ps = conn.prepareStatement(insertSql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    int idx = 1;
+                    for (String colName : toInsert) {
+                        String v = req.getParameter(colName);
+                        if (v == null) v = req.getParameter(colName.toLowerCase());
+                        ps.setString(idx++, v == null ? "" : v);
+                    }
                     int affected = ps.executeUpdate();
                     if (affected > 0) {
                         try (ResultSet gk = ps.getGeneratedKeys()) {
@@ -272,6 +358,33 @@ public class AdminProductosApiServlet extends HttpServlet {
                         if (pl.equals("action") || pl.equals("id")) continue;
                         if (colsMap.containsKey(pl)) {
                             toUpdate.add(colsMap.get(pl));
+                        }
+                    }
+                    // validate numeric non-negative values for update
+                    for (String colName : toUpdate) {
+                        if (colName == null) continue;
+                        String cl = colName.toLowerCase();
+                        String paramVal = req.getParameter(colName);
+                        if (paramVal == null) paramVal = req.getParameter(colName.toLowerCase());
+                        if (paramVal == null) continue;
+                        try {
+                            if ((cl.contains("stock") || cl.contains("cantidad")) && paramVal.trim().length() > 0) {
+                                int n = Integer.parseInt(paramVal.trim());
+                                if (n < 0) {
+                                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(colName)+"\",\"message\":\"Stock debe ser >= 0\"}");
+                                    return;
+                                }
+                            }
+                            if ((cl.contains("precio") || cl.contains("price") || cl.contains("cost")) && paramVal.trim().length() > 0) {
+                                double f = Double.parseDouble(paramVal.trim());
+                                if (f < 0) {
+                                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(colName)+"\",\"message\":\"Precio debe ser >= 0\"}");
+                                    return;
+                                }
+                            }
+                        } catch (NumberFormatException nfe) {
+                            resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_value\",\"field\":\""+escape(colName)+"\",\"message\":\"Valor numérico inválido\"}");
+                            return;
                         }
                     }
                     if (toUpdate.isEmpty()) {

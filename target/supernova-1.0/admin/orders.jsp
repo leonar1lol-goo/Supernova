@@ -54,12 +54,32 @@
                 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="moTitle">
                     <h3 id="moTitle">Crear Nuevo Pedido</h3>
                     <div class="form-row">
-                        <label for="moEmail">Email del cliente (si existe se usará, si no se creará):</label>
-                        <input id="moEmail" type="email" placeholder="cliente@ejemplo.com" />
+                        <label for="moClienteSelect">Seleccionar cliente existente:</label>
+                        <select id="moClienteSelect">
+                            <option value="">-- seleccionar cliente --</option>
+                        </select>
+                    </div>
+                    <div class="form-row" style="margin-bottom:8px;display:flex;gap:12px;align-items:center">
+                        <div style="flex:1">
+                            <p class="label-muted" style="margin:0">Si el cliente no está registrado aún</p>
+                        </div>
+                        <div style="min-width:140px;display:flex;flex-direction:column;gap:6px">
+                            <button id="moOpenClients" class="btn-ghost">Crear cliente</button>
+                        </div>
                     </div>
                     <div class="form-row">
-                        <label for="moNombre">Nombre del cliente (opcional):</label>
-                        <input id="moNombre" type="text" placeholder="Nombre cliente" />
+                        <label for="moProductoSelect">Agregar productos al pedido:</label>
+                        <div class="product-select-row">
+                            <select id="moProductoSelect">
+                                <option value="">-- seleccionar producto --</option>
+                            </select>
+                            <div class="product-controls">
+                                <input id="moProductoCantidad" type="number" min="1" placeholder="cantidad" />
+                                <div id="moProductoInfo"></div>
+                                <button id="moAddProducto" class="btn-ghost">Agregar</button>
+                            </div>
+                        </div>
+                        <div id="moItemsList"></div>
                     </div>
                     <div class="actions">
                         <button id="moCancel" class="btn-ghost">Cancelar</button>
@@ -191,12 +211,19 @@
 
                 var btnNew = document.getElementById('btnNewOrder');
                 var modal = document.getElementById('newOrderModal');
-                var moEmail = document.getElementById('moEmail');
-                var moNombre = document.getElementById('moNombre');
+                var moEmail = null;
+                var moNombre = null;
                 var moCancel = document.getElementById('moCancel');
                 var moSubmit = document.getElementById('moSubmit');
+                var moProductoSelect = document.getElementById('moProductoSelect');
+                var moProductoCantidad = document.getElementById('moProductoCantidad');
+                var moProductoInfo = document.getElementById('moProductoInfo');
+                var moAddProducto = document.getElementById('moAddProducto');
+                var moItemsList = document.getElementById('moItemsList');
+                var moItems = [];
+                var moProductosList = [];
 
-                function openModal(){ if(!modal) return; modal.classList.add('modal-show'); modal.setAttribute('aria-hidden','false'); setTimeout(function(){ try{ moEmail.focus(); }catch(e){} },50); document.addEventListener('keydown', escHandler); }
+                function openModal(){ if(!modal) return; modal.classList.add('modal-show'); modal.setAttribute('aria-hidden','false'); setTimeout(function(){ try{ if(moProductoSelect) moProductoSelect.focus(); }catch(e){} },50); document.addEventListener('keydown', escHandler); }
                 function closeModal(){ if(!modal) return; modal.classList.remove('modal-show'); modal.setAttribute('aria-hidden','true'); document.removeEventListener('keydown', escHandler); }
                 function escHandler(e){ if(e.key === 'Escape'){ closeModal(); } }
 
@@ -204,15 +231,62 @@
                     modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
                 }
 
-                if (btnNew){ btnNew.addEventListener('click', function(){ if(moEmail) moEmail.value=''; if(moNombre) moNombre.value=''; openModal(); }); }
+                if (btnNew){ btnNew.addEventListener('click', function(){
+                    if(moItemsList) moItemsList.innerHTML = '<i>(sin items)</i>';
+                    if(moProductoInfo) moProductoInfo.innerHTML = '';
+                    moItems = []; if(moItemsList) moItemsList.innerHTML = '<i>(sin items)</i>';
+                    var sel = document.getElementById('moClienteSelect');
+                    if (sel) {
+                        sel.innerHTML = '<option value="">-- seleccionar cliente --</option>';
+                        fetch(window.APP_CTX + '/admin/api/clientes', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){ if(Array.isArray(list)){ list.forEach(function(c){ var opt = document.createElement('option'); opt.value = c.id; opt.textContent = (c.nombre||'') + (c.email ? ' <' + c.email + '>' : ''); sel.appendChild(opt); }); } }).catch(function(){});
+                    }
+                    if (moProductoSelect){
+                        moProductoSelect.innerHTML = '<option value="">-- seleccionar producto --</option>';
+                        fetch(window.APP_CTX + '/admin/api/productos', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){ moProductosList = Array.isArray(list) ? list : []; if(Array.isArray(list)){ list.forEach(function(p){ try{ var opt = document.createElement('option'); opt.value = p.id || p.ID || p.Id || p.ID_PRODUCTO || ''; var display = p.nombre || p.producto || p.name || p.titulo || Object.keys(p).filter(function(k){ return k.toLowerCase()!=='id' && k.toLowerCase()!=='precio'; }).map(function(k){ return p[k]; }).join(' '); opt.textContent = display || opt.value; moProductoSelect.appendChild(opt); }catch(e){} }); } }).catch(function(){});
+                        if (moProductoSelect) {
+                            moProductoSelect.onchange = function(){
+                                var pid = moProductoSelect.value || '';
+                                if(!pid){ if(moProductoInfo) moProductoInfo.innerHTML=''; return; }
+                                var prod = moProductosList.find(function(x){ return (x.id||x.ID||x.Id||x.ID_PRODUCTO||'')+'' === pid+''; });
+                                if(!prod){ if(moProductoInfo) moProductoInfo.innerHTML=''; return; }
+                                var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || '';
+                                var precio = prod.precio || prod.price || prod.PRECIO || '';
+                                var stock = prod.stock || prod.cantidad || prod.existencia || prod.stock_actual || '';
+                                if(moProductoInfo) moProductoInfo.innerHTML = 'Unidad de medida: '+escapeHtml(unidad||'u') + (precio ? ' | Precio: $'+(Number(precio).toFixed?Number(precio).toFixed(2):precio) : '') + (stock ? ' | Stock: '+escapeHtml(stock) : '');
+                                if(moProductoCantidad) moProductoCantidad.placeholder = unidad ? 'cantidad ('+unidad+')' : 'cantidad';
+                            };
+                        }
+                    }
+                    if (moAddProducto){
+                        moAddProducto.onclick = function(ev){ ev.preventDefault(); var pid = moProductoSelect && moProductoSelect.value || ''; var qty = moProductoCantidad && moProductoCantidad.value || ''; if(!pid || !qty || Number(qty) <= 0){ showToast('Seleccione producto y cantidad válida','error'); return; } var label = (moProductoSelect.options[moProductoSelect.selectedIndex] && moProductoSelect.options[moProductoSelect.selectedIndex].text) || pid; var prod = moProductosList.find(function(x){ return (x.id||x.ID||x.Id||x.ID_PRODUCTO||'')+'' === pid+''; }) || {}; var precio = prod.precio || prod.price || prod.PRECIO || ''; var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || ''; moItems.push({id: pid, cantidad: qty, label: label, precio: precio, unidad: unidad}); renderMoItems(); moProductoSelect.value=''; moProductoCantidad.value=''; if(moProductoInfo) moProductoInfo.innerHTML=''; };
+                    }
+                    function renderMoItems(){
+                        if(!moItemsList) return;
+                        if(!moItems || !moItems.length){ moItemsList.innerHTML = '<i>(sin items)</i>'; return; }
+                        var html = '<ul class="mo-items">';
+                        moItems.forEach(function(it, idx){
+                            var meta = 'qty:'+escapeHtml(it.cantidad)+(it.unidad?(' '+escapeHtml(it.unidad)):('')) + (it.precio?(' | $'+(Number(it.precio).toFixed?Number(it.precio).toFixed(2):it.precio)):(''));
+                            html += '<li class="mo-item">'
+                                 + '<div><strong>#'+escapeHtml(it.id)+'</strong> - '+escapeHtml(it.label)+' <span class="mo-item-meta">'+meta+'</span></div>'
+                                 + '<div><button data-idx="'+idx+'" class="btn-ghost small-btn mo-remove">Quitar</button></div>'
+                                 + '</li>';
+                        });
+                        html += '</ul>';
+                        moItemsList.innerHTML = html;
+                        Array.from(moItemsList.querySelectorAll('.mo-remove')).forEach(function(b){ b.addEventListener('click', function(ev){ var i = Number(b.getAttribute('data-idx')); if(!isNaN(i)){ moItems.splice(i,1); renderMoItems(); } }); });
+                    }
+                    renderMoItems();
+                    openModal();
+                }); }
                 if (moCancel){ moCancel.addEventListener('click', function(e){ e.preventDefault(); closeModal(); }); }
 
                 if (moSubmit){ moSubmit.addEventListener('click', function(e){
                     e.preventDefault();
-                    var email = (moEmail && moEmail.value||'').trim();
-                    if (!email){ showToast('Ingrese un email válido','error'); if(moEmail) moEmail.focus(); return; }
-                    var nombre = (moNombre && moNombre.value||'').trim();
-                    var params = new URLSearchParams(); params.append('action','create'); params.append('cliente_email', email); if (nombre) params.append('cliente_nombre', nombre);
+                    var sel = document.getElementById('moClienteSelect');
+                    var selectedId = sel ? (sel.value || '') : '';
+                    if (!selectedId){ showToast('Seleccione un cliente o cree uno nuevo','error'); if(sel) sel.focus(); return; }
+                    var params = new URLSearchParams(); params.append('action','create');
+                    params.append('cliente_id', selectedId);
 
                     moSubmit.disabled = true; moSubmit.textContent = 'Creando...';
 
@@ -220,7 +294,13 @@
                         if (!resp.ok){ return resp.text().then(function(t){ throw new Error('HTTP '+resp.status+': '+(t||resp.statusText)); }); }
                         return resp.json().catch(function(){ throw new Error('Respuesta no JSON desde el servidor'); });
                     }).then(function(res){
-                        if(res && res.ok){ closeModal(); showToast('Pedido creado ID='+res.id,'success'); load(); }
+                        if(res && res.ok){
+                            var orderId = res.id;
+                            if (moItems && moItems.length){
+                                var promises = moItems.map(function(it){ var p2 = new URLSearchParams(); p2.append('action','addItem'); p2.append('id_pedido', orderId); p2.append('id_producto', it.id); p2.append('cantidad', it.cantidad); if(it.precio) p2.append('precio_unitario', it.precio); return fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p2.toString()}).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); }); });
+                                Promise.all(promises).then(function(results){ closeModal(); showToast('Pedido creado ID='+orderId,'success'); load(); }).catch(function(e){ console.error('add items error',e); closeModal(); showToast('Pedido creado pero error al agregar items','warn'); load(); });
+                            } else { closeModal(); showToast('Pedido creado ID='+orderId,'success'); load(); }
+                        }
                         else {
                             var msg = (res && (res.message || JSON.stringify(res))) || 'Error al crear pedido';
                             throw new Error(msg);
@@ -230,6 +310,11 @@
                         showToast('Error al crear pedido: ' + (e && e.message ? e.message : 'ver consola'),'error');
                     }).finally(function(){ moSubmit.disabled = false; moSubmit.textContent = 'Crear'; });
                 }); }
+
+                var moOpenClientsBtn = document.getElementById('moOpenClients');
+                if (moOpenClientsBtn) {
+                    moOpenClientsBtn.addEventListener('click', function(e){ e.preventDefault(); window.location.href = window.APP_CTX + '/admin/clientes.jsp?new=1'; });
+                }
 
                 search.addEventListener('input', function(){ var q = this.value.toLowerCase(); $all('#ordersTable tbody tr').forEach(function(tr){ var id = tr.children[0].textContent.toLowerCase(); var client = tr.children[1].textContent.toLowerCase(); var total = tr.children[3].textContent.toLowerCase(); var visible = id.indexOf(q)!==-1 || client.indexOf(q)!==-1 || total.indexOf(q)!==-1; tr.style.display = visible ? '' : 'none'; }); });
 
