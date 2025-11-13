@@ -40,6 +40,14 @@
                                 <th>ID</th>
                                 <th>Cliente</th>
                                 <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Entrega estimada</th>
+                                <th>Entrega real</th>
+                                <th>Dirección envío</th>
+                                <th class="text-right">Costo envío</th>
+                                <th>Método pago</th>
+                                <th>Prioridad</th>
+                                <th>Notas</th>
                                 <th class="text-center">Total</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -55,7 +63,7 @@
                     <h3 id="moTitle">Crear Nuevo Pedido</h3>
                     <div class="form-row">
                         <label for="moClienteSelect">Seleccionar cliente existente:</label>
-                        <select id="moClienteSelect">
+                        <select id="moClienteSelect" required>
                             <option value="">-- seleccionar cliente --</option>
                         </select>
                     </div>
@@ -74,12 +82,50 @@
                                 <option value="">-- seleccionar producto --</option>
                             </select>
                             <div class="product-controls">
-                                <input id="moProductoCantidad" type="number" min="1" placeholder="cantidad" />
+                                <input id="moProductoCantidad" type="number" min="1" step="1" pattern="[0-9]*" inputmode="numeric" placeholder="cantidad" oninput="this.value=this.value.replace(/\D/g,'')" />
                                 <div id="moProductoInfo"></div>
                                 <button id="moAddProducto" class="btn-ghost">Agregar</button>
                             </div>
                         </div>
                         <div id="moItemsList"></div>
+                    </div>
+                    <div class="form-row">
+                        <label for="moEstado">Estado:</label>
+                        <select id="moEstado">
+                            <option value="pendiente">pendiente</option>
+                            <option value="preparacion">en preparacion</option>
+                            <option value="completado">completado</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="moPrioridad">Prioridad (opcional):</label>
+                        <input id="moPrioridad" type="text" placeholder="Prioridad" />
+                    </div>
+                    <div class="form-row">
+                        <label for="moFechaEstimada">Fecha entrega estimada (opcional):</label>
+                        <input id="moFechaEstimada" type="date" />
+                    </div>
+                    <div class="form-row">
+                        <label for="moDireccion">Dirección envío (se carga desde el cliente seleccionado):</label>
+                        <input id="moDireccion" type="text" placeholder="Dirección de envío" readonly required title="Se carga desde la tabla Cliente" />
+                    </div>
+                    <div class="form-row">
+                        <label for="moCostoEnvio">Costo envío (opcional):</label>
+                        <input id="moCostoEnvio" type="number" step="0.01" placeholder="0.00" />
+                    </div>
+                    <div class="form-row">
+                        <label for="moMetodoPago">Método de pago (opcional):</label>
+                        <select id="moMetodoPago">
+                            <option value="">-- seleccionar método --</option>
+                            <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                            <option value="transferencia">Transferencia Bancaria</option>
+                            <option value="pago_movil">Pago Móvil/Digital</option>
+                            <option value="credito">Crédito/Cuenta Corriente</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="moNotas">Notas (opcional):</label>
+                        <textarea id="moNotas" rows="2" placeholder="Notas del pedido"></textarea>
                     </div>
                     <div class="actions">
                         <button id="moCancel" class="btn-ghost">Cancelar</button>
@@ -127,7 +173,7 @@
                     </div>
                     <div class="form-row">
                         <label for="itCantidad">Cantidad:</label>
-                        <input id="itCantidad" type="number" placeholder="cantidad" />
+                        <input id="itCantidad" type="number" min="1" step="1" pattern="[0-9]*" inputmode="numeric" placeholder="cantidad" oninput="this.value=this.value.replace(/\D/g,'')" />
                     </div>
                     <div class="form-row">
                         <label for="itPrecio">Precio unitario (opcional):</label>
@@ -176,10 +222,20 @@
                 var tr = document.createElement('tr');
                 var stateSlug = (o.estado||'').toLowerCase().replace(/\s+/g,'');
                 tr.setAttribute('data-state', stateSlug);
-                var totalDisplay = o.totalIsItems ? (o.total + ' items') : ('$' + (Number(o.total||0).toFixed(2)));
+                var totalDisplay = o.totalIsItems ? (o.total + ' items') : ('S/.' + (Number(o.total||0).toFixed(2)));
+                    var costoStr = '';
+                    try{ if(o.costo_envio){ costoStr = ('S/.' + (Number(o.costo_envio).toFixed(2))); } }catch(e){ costoStr = (o.costo_envio||''); }
                 tr.innerHTML = '<td>'+o.id+'</td>'+
                                '<td>'+escapeHtml(o.cliente)+'</td>'+
                                '<td>'+escapeHtml(o.estado)+'</td>'+
+                               '<td>'+escapeHtml(o.fecha||'')+'</td>'+
+                               '<td>'+escapeHtml(o.fecha_entrega_estimada||'')+'</td>'+
+                               '<td>'+escapeHtml(o.fecha_entrega_real||'')+'</td>'+
+                               '<td>'+escapeHtml(o.direccion_envio||'')+'</td>'+
+                                   '<td class="text-right">'+escapeHtml(costoStr)+'</td>'+
+                               '<td>'+escapeHtml(o.metodo_pago||'')+'</td>'+
+                               '<td>'+escapeHtml(o.prioridad||'')+'</td>'+
+                               '<td>'+escapeHtml(o.notas||'')+'</td>'+
                                '<td class="text-center">'+totalDisplay+'</td>'+
                                '<td class="text-center">'
                                +'<button class="action-btn btn-edit small-btn" data-action="edit" data-id="'+o.id+'">Editar</button>'
@@ -238,7 +294,8 @@
                     var sel = document.getElementById('moClienteSelect');
                     if (sel) {
                         sel.innerHTML = '<option value="">-- seleccionar cliente --</option>';
-                        fetch(window.APP_CTX + '/admin/api/clientes', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){ if(Array.isArray(list)){ list.forEach(function(c){ var opt = document.createElement('option'); opt.value = c.id; opt.textContent = (c.nombre||'') + (c.email ? ' <' + c.email + '>' : ''); sel.appendChild(opt); }); } }).catch(function(){});
+                        fetch(window.APP_CTX + '/admin/api/clientes', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){ if(Array.isArray(list)){ list.forEach(function(c){ var opt = document.createElement('option'); opt.value = c.id; opt.textContent = (c.nombre||'') + (c.email ? ' <' + c.email + '>' : ''); opt.dataset.direccion = c.direccion || c.direccion_envio || ''; sel.appendChild(opt); }); } }).catch(function(){});
+                        sel.onchange = function(){ try{ var v = sel.value || ''; var opt = sel.options[sel.selectedIndex]; var dir = opt && opt.dataset ? opt.dataset.direccion : ''; var dirInput = document.getElementById('moDireccion'); if(dirInput){ dirInput.value = dir || ''; if(!dir){ /* leave empty for manual entry */ } } }catch(e){} };
                     }
                     if (moProductoSelect){
                         moProductoSelect.innerHTML = '<option value="">-- seleccionar producto --</option>';
@@ -252,25 +309,52 @@
                                 var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || '';
                                 var precio = prod.precio || prod.price || prod.PRECIO || '';
                                 var stock = prod.stock || prod.cantidad || prod.existencia || prod.stock_actual || '';
-                                if(moProductoInfo) moProductoInfo.innerHTML = 'Unidad de medida: '+escapeHtml(unidad||'u') + (precio ? ' | Precio: $'+(Number(precio).toFixed?Number(precio).toFixed(2):precio) : '') + (stock ? ' | Stock: '+escapeHtml(stock) : '');
-                                if(moProductoCantidad) moProductoCantidad.placeholder = unidad ? 'cantidad ('+unidad+')' : 'cantidad';
+                                if(moProductoInfo) moProductoInfo.innerHTML = 'Unidad de medida: '+escapeHtml(unidad||'u') + (precio ? ' | Precio: S/.'+(Number(precio).toFixed?Number(precio).toFixed(2):precio) : '') + (stock ? ' | Stock: '+escapeHtml(stock) : '');
+                                if(moProductoCantidad) {
+                                    moProductoCantidad.placeholder = unidad ? 'cantidad ('+unidad+')' : 'cantidad';
+                                    if(stock !== '') {
+                                        try{ moProductoCantidad.setAttribute('max', Number(stock)); }catch(e){}
+                                    } else {
+                                        try{ moProductoCantidad.removeAttribute('max'); }catch(e){}
+                                    }
+                                }
                             };
                         }
                     }
-                    if (moAddProducto){
-                        moAddProducto.onclick = function(ev){ ev.preventDefault(); var pid = moProductoSelect && moProductoSelect.value || ''; var qty = moProductoCantidad && moProductoCantidad.value || ''; if(!pid || !qty || Number(qty) <= 0){ showToast('Seleccione producto y cantidad válida','error'); return; } var label = (moProductoSelect.options[moProductoSelect.selectedIndex] && moProductoSelect.options[moProductoSelect.selectedIndex].text) || pid; var prod = moProductosList.find(function(x){ return (x.id||x.ID||x.Id||x.ID_PRODUCTO||'')+'' === pid+''; }) || {}; var precio = prod.precio || prod.price || prod.PRECIO || ''; var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || ''; moItems.push({id: pid, cantidad: qty, label: label, precio: precio, unidad: unidad}); renderMoItems(); moProductoSelect.value=''; moProductoCantidad.value=''; if(moProductoInfo) moProductoInfo.innerHTML=''; };
+                        if (moAddProducto){
+                        moAddProducto.onclick = function(ev){
+                            ev.preventDefault();
+                            var pid = moProductoSelect && moProductoSelect.value || '';
+                            var qty = moProductoCantidad && moProductoCantidad.value || '';
+                            if(!pid || !qty || Number(qty) <= 0){ showToast('Seleccione producto y cantidad válida','error'); return; }
+                            var label = (moProductoSelect.options[moProductoSelect.selectedIndex] && moProductoSelect.options[moProductoSelect.selectedIndex].text) || pid;
+                            var prod = moProductosList.find(function(x){ return (x.id||x.ID||x.Id||x.ID_PRODUCTO||'')+'' === pid+''; }) || {};
+                            var precio = prod.precio || prod.price || prod.PRECIO || '';
+                            var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || '';
+                            var stockVal = Number(prod.stock || prod.cantidad || prod.existencia || prod.stock_actual || 0);
+                            if(stockVal > 0 && Number(qty) > stockVal){ showToast('No hay suficiente stock. Disponible: '+stockVal,'error'); return; }
+                            moItems.push({id: pid, cantidad: qty, label: label, precio: precio, unidad: unidad});
+                            renderMoItems();
+                            moProductoSelect.value=''; moProductoCantidad.value=''; if(moProductoInfo) moProductoInfo.innerHTML='';
+                        };
                     }
                     function renderMoItems(){
                         if(!moItemsList) return;
                         if(!moItems || !moItems.length){ moItemsList.innerHTML = '<i>(sin items)</i>'; return; }
                         var html = '<ul class="mo-items">';
-                        moItems.forEach(function(it, idx){
-                            var meta = 'qty:'+escapeHtml(it.cantidad)+(it.unidad?(' '+escapeHtml(it.unidad)):('')) + (it.precio?(' | $'+(Number(it.precio).toFixed?Number(it.precio).toFixed(2):it.precio)):(''));
-                            html += '<li class="mo-item">'
-                                 + '<div><strong>#'+escapeHtml(it.id)+'</strong> - '+escapeHtml(it.label)+' <span class="mo-item-meta">'+meta+'</span></div>'
-                                 + '<div><button data-idx="'+idx+'" class="btn-ghost small-btn mo-remove">Quitar</button></div>'
-                                 + '</li>';
-                        });
+                                moItems.forEach(function(it, idx){
+                                    var qtyText = 'Cantidad: '+escapeHtml(it.cantidad) + (it.unidad?(' '+escapeHtml(it.unidad)):'');
+                                     var priceText = it.precio ? ('S/.' + (Number(it.precio).toFixed?Number(it.precio).toFixed(2):it.precio)) : '';
+                                     html += '<li class="mo-item">'
+                                            + '<div class="mo-item-left">'
+                                                + '<div class="mo-item-title">#'+escapeHtml(it.id)+' - '+escapeHtml(it.label)+'</div>'
+                                                + '<div class="mo-item-meta">'+escapeHtml(qtyText) + (priceText?(' | '+escapeHtml(priceText)):'')+'</div>'
+                                            + '</div>'
+                                            + '<div class="mo-item-right">'
+                                                + '<button data-idx="'+idx+'" class="btn-ghost small-btn mo-remove">Quitar</button>'
+                                            + '</div>'
+                                            + '</li>';
+                                });
                         html += '</ul>';
                         moItemsList.innerHTML = html;
                         Array.from(moItemsList.querySelectorAll('.mo-remove')).forEach(function(b){ b.addEventListener('click', function(ev){ var i = Number(b.getAttribute('data-idx')); if(!isNaN(i)){ moItems.splice(i,1); renderMoItems(); } }); });
@@ -285,13 +369,85 @@
                     var sel = document.getElementById('moClienteSelect');
                     var selectedId = sel ? (sel.value || '') : '';
                     if (!selectedId){ showToast('Seleccione un cliente o cree uno nuevo','error'); if(sel) sel.focus(); return; }
+
+                    var estadoVal = (document.getElementById('moEstado') && document.getElementById('moEstado').value) || 'pendiente';
+                    var prioridadVal = (document.getElementById('moPrioridad') && document.getElementById('moPrioridad').value) || '';
+                    var fechaEstVal = (document.getElementById('moFechaEstimada') && document.getElementById('moFechaEstimada').value) || '';
+                    var direccionVal = (document.getElementById('moDireccion') && document.getElementById('moDireccion').value) || '';
+                    var costoEnvioVal = (document.getElementById('moCostoEnvio') && document.getElementById('moCostoEnvio').value) || '';
+                    var metodoPagoVal = (document.getElementById('moMetodoPago') && document.getElementById('moMetodoPago').value) || '';
+                    var notasVal = (document.getElementById('moNotas') && document.getElementById('moNotas').value) || '';
+
                     var params = new URLSearchParams(); params.append('action','create');
                     params.append('cliente_id', selectedId);
+                    params.append('estado', estadoVal);
+                    if (prioridadVal) params.append('prioridad', prioridadVal);
+                    if (fechaEstVal) params.append('fecha_entrega_estimada', fechaEstVal);
+                    if (direccionVal) params.append('direccion_envio', direccionVal);
+                    if (costoEnvioVal) params.append('costo_envio', costoEnvioVal);
+                    if (metodoPagoVal) params.append('metodo_pago', metodoPagoVal);
+                    if (notasVal) params.append('notas', notasVal);
 
                     moSubmit.disabled = true; moSubmit.textContent = 'Creando...';
 
+                    if (moItems && moItems.length) {
+                        var paramsAll = new URLSearchParams(); paramsAll.append('action','createWithItems'); paramsAll.append('cliente_id', selectedId);
+                        paramsAll.append('estado', estadoVal);
+                        if (prioridadVal) paramsAll.append('prioridad', prioridadVal);
+                        if (fechaEstVal) paramsAll.append('fecha_entrega_estimada', fechaEstVal);
+                        if (direccionVal) paramsAll.append('direccion_envio', direccionVal);
+                        if (costoEnvioVal) paramsAll.append('costo_envio', costoEnvioVal);
+                        if (metodoPagoVal) paramsAll.append('metodo_pago', metodoPagoVal);
+                        if (notasVal) paramsAll.append('notas', notasVal);
+                        moItems.forEach(function(it){ paramsAll.append('item_id', it.id); paramsAll.append('item_cantidad', it.cantidad); if(it.precio) paramsAll.append('item_precio', it.precio); });
+                        fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers: {'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: paramsAll.toString()}).then(function(resp){
+                            if (!resp.ok){
+                                return resp.text().then(function(t){
+                                        var body = (t||'') + '';
+                                        var low = body.toLowerCase();
+                                        try{
+                                            var parsed = JSON.parse(body);
+                                            if(parsed && parsed.error === 'db' && /cannot be null/i.test(parsed.message || '')){
+                                                throw new Error('MISSING_REQUIRED_FIELDS');
+                                            }
+                                        }catch(_){ }
+                                        if(low.indexOf('cannot be null') !== -1 || low.indexOf('sqlintegrityconstraintviolationexception') !== -1){
+                                            throw new Error('MISSING_REQUIRED_FIELDS');
+                                        }
+                                        throw new Error('HTTP '+resp.status+': '+(body||resp.statusText));
+                                    });
+                            }
+                            return resp.json().catch(function(){ throw new Error('Respuesta no JSON desde el servidor'); });
+                        }).then(function(res){
+                            if(res && res.ok){ closeModal(); showToast('Pedido creado ID='+res.id,'success'); load(); }
+                            else { var msg = (res && (res.message || JSON.stringify(res))) || 'Error al crear pedido'; throw new Error(msg); }
+                        }).catch(function(e){ console.error('Crear pedido error:', e);
+                            if(e && e.message === 'MISSING_REQUIRED_FIELDS'){
+                                showToast('Complete los campos restantes','error');
+                            } else {
+                                showToast('Error al crear pedido: ' + (e && e.message ? e.message : 'ver consola'),'error');
+                            }
+                        }).finally(function(){ moSubmit.disabled = false; moSubmit.textContent = 'Crear'; });
+                        return;
+                    }
+
                     fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers: {'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: params.toString()}).then(function(resp){
-                        if (!resp.ok){ return resp.text().then(function(t){ throw new Error('HTTP '+resp.status+': '+(t||resp.statusText)); }); }
+                        if (!resp.ok){
+                            return resp.text().then(function(t){
+                                var body = (t||'') + '';
+                                var low = body.toLowerCase();
+                                try{
+                                    var parsed = JSON.parse(body);
+                                    if(parsed && parsed.error === 'db' && /cannot be null/i.test(parsed.message || '')){
+                                        throw new Error('MISSING_REQUIRED_FIELDS');
+                                    }
+                                }catch(_){ }
+                                if(low.indexOf('cannot be null') !== -1 || low.indexOf('sqlintegrityconstraintviolationexception') !== -1){
+                                    throw new Error('MISSING_REQUIRED_FIELDS');
+                                }
+                                throw new Error('HTTP '+resp.status+': '+(body||resp.statusText));
+                            });
+                        }
                         return resp.json().catch(function(){ throw new Error('Respuesta no JSON desde el servidor'); });
                     }).then(function(res){
                         if(res && res.ok){
@@ -307,7 +463,11 @@
                         }
                     }).catch(function(e){
                         console.error('Crear pedido error:', e);
-                        showToast('Error al crear pedido: ' + (e && e.message ? e.message : 'ver consola'),'error');
+                        if(e && e.message === 'MISSING_REQUIRED_FIELDS'){
+                            showToast('Complete los campos restantes','error');
+                        } else {
+                            showToast('Error al crear pedido: ' + (e && e.message ? e.message : 'ver consola'),'error');
+                        }
                     }).finally(function(){ moSubmit.disabled = false; moSubmit.textContent = 'Crear'; });
                 }); }
 
@@ -316,7 +476,7 @@
                     moOpenClientsBtn.addEventListener('click', function(e){ e.preventDefault(); window.location.href = window.APP_CTX + '/admin/clientes.jsp?new=1'; });
                 }
 
-                search.addEventListener('input', function(){ var q = this.value.toLowerCase(); $all('#ordersTable tbody tr').forEach(function(tr){ var id = tr.children[0].textContent.toLowerCase(); var client = tr.children[1].textContent.toLowerCase(); var total = tr.children[3].textContent.toLowerCase(); var visible = id.indexOf(q)!==-1 || client.indexOf(q)!==-1 || total.indexOf(q)!==-1; tr.style.display = visible ? '' : 'none'; }); });
+                search.addEventListener('input', function(){ var q = this.value.toLowerCase(); $all('#ordersTable tbody tr').forEach(function(tr){ var text = tr.textContent.toLowerCase(); tr.style.display = text.indexOf(q) !== -1 ? '' : 'none'; }); });
 
                 document.querySelector('#ordersTable tbody').addEventListener('click', function(e){
                     var btn = e.target.closest('button[data-action]'); if(!btn) return;
@@ -369,7 +529,7 @@
                         function closeItems(){ itemsModal.classList.remove('modal-show'); itemsModal.setAttribute('aria-hidden','true'); }
                         if (itClose) itClose.onclick = function(ev){ ev.preventDefault(); closeItems(); };
 
-                        function loadItems(){ fetch(window.APP_CTX + '/admin/api/orders?id='+encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(items){ if(!items || !items.length){ itemsList.innerHTML = '<i>(sin items)</i>'; return; } var html = '<ul style="margin:0;padding-left:16px">'; items.forEach(function(it){ html += '<li>#'+it.id_detalle+' - '+escapeHtml(it.producto)+' qty:'+it.cantidad_solicitada + (it.precio_unitario?(' precio:'+it.precio_unitario):'') + '</li>'; }); html += '</ul>'; itemsList.innerHTML = html; }).catch(function(e){ console.error('items load',e); itemsList.innerHTML = '<span style="color:#a00">Error cargando items</span>'; }); }
+                        function loadItems(){ fetch(window.APP_CTX + '/admin/api/orders?id='+encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(items){ if(!items || !items.length){ itemsList.innerHTML = '<i>(sin items)</i>'; return; } var html = '<ul style="margin:0;padding-left:16px">'; items.forEach(function(it){ var precioUnit = it.precio_unitario ? (' | Precio: S/.' + (Number(it.precio_unitario).toFixed?Number(it.precio_unitario).toFixed(2):it.precio_unitario)) : ''; html += '<li>#'+it.id_detalle+' - '+escapeHtml(it.producto)+' Cantidad:'+it.cantidad_solicitada + precioUnit + '</li>'; }); html += '</ul>'; itemsList.innerHTML = html; }).catch(function(e){ console.error('items load',e); itemsList.innerHTML = '<span style="color:#a00">Error cargando items</span>'; }); }
                         loadItems();
 
                         if (itAdd) {

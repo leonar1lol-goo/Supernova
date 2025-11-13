@@ -106,10 +106,6 @@
                     <input id="ecTelefono" type="tel" inputmode="numeric" pattern="\\d{1,9}" maxlength="9" />
                 </div>
                 <div class="form-row">
-                    <label for="ecDni">DNI / RUC</label>
-                    <input id="ecDni" type="text" inputmode="numeric" pattern="\\d{1,11}" maxlength="11" />
-                </div>
-                <div class="form-row">
                     <label for="ecDireccion">Dirección</label>
                     <input id="ecDireccion" type="text" />
                 </div>

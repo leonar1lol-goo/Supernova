@@ -118,10 +118,7 @@ public class AdminProductosApiServlet extends HttpServlet {
                 return;
             }
         } catch (SQLException e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            String msg = e.getMessage() == null ? "" : e.getMessage();
-            resp.getWriter().print("{\"error\":\"db\",\"message\":\"" + escape(msg) + "\"}");
-            e.printStackTrace();
+            sendDbError(resp, e, "listando productos");
             return;
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -196,6 +193,16 @@ public class AdminProductosApiServlet extends HttpServlet {
             if (v != null && v.length() > 0) return v;
         }
         return "";
+    }
+
+    private void sendDbError(HttpServletResponse resp, Exception ex, String context) throws IOException {
+        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        resp.setContentType("application/json;charset=UTF-8");
+        String msg = ex == null || ex.getMessage() == null ? "" : ex.getMessage();
+        String safe = escape(msg);
+        String ctx = context == null ? "" : escape(context);
+        resp.getWriter().print("{\"ok\":false,\"error\":\"db\",\"context\":\"" + ctx + "\",\"message\":\"" + safe + "\"}");
+        if (ex != null) ex.printStackTrace();
     }
 
     @Override
@@ -414,8 +421,7 @@ public class AdminProductosApiServlet extends HttpServlet {
                         return;
                     }
                 } catch (SQLException ex) {
-                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                    sendDbError(resp, ex, "actualizando producto");
                     return;
                 }
             } else if ("delete".equalsIgnoreCase(action)) {
@@ -443,8 +449,7 @@ public class AdminProductosApiServlet extends HttpServlet {
                         return;
                     }
                 } catch (SQLException ex) {
-                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                    sendDbError(resp, ex, "eliminando producto");
                     return;
                 }
             } else if ("toggle".equalsIgnoreCase(action)) {
@@ -492,8 +497,7 @@ public class AdminProductosApiServlet extends HttpServlet {
                         return;
                     }
                 } catch (SQLException ex) {
-                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+                    sendDbError(resp, ex, "cambiando estado producto");
                     return;
                 }
             } else {
@@ -501,8 +505,7 @@ public class AdminProductosApiServlet extends HttpServlet {
                 return;
             }
         } catch (SQLException ex) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().print("{\"ok\":false,\"error\":\"db\"}");
+            sendDbError(resp, ex, "operacion productos");
             return;
         }
     }

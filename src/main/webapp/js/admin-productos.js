@@ -146,25 +146,56 @@
             var container = pModal.querySelector('.register-container');
             var keys = window.PRODUCTS_KEYS || ['nombre','codigo_barra','categoria','stock'];
             container.innerHTML = '';
+            var CATEGORIES = [
+                "Frutas y Verduras (F&V)",
+                "Carnicería",
+                "Pescadería",
+                "Panadería y Repostería",
+                "Lácteos, Huevos y Refrigerados",
+                "Abarrotes / Víveres Secos",
+                "Conservas y Enlatados",
+                "Cereales y Desayuno",
+                "Snacks, Galletas y Golosinas",
+                "Carnes y Pescados congelados",
+                "Vegetales y Frutas congeladas",
+                "Comidas Preparadas Congeladas",
+                "Helados y Postres congelados",
+                "Limpieza del Hogar",
+                "Cuidado Personal y Farmacia",
+                "Higiene Femenina y de Bebés",
+                "Mascotas",
+                "Aguas",
+                "Refrescos y Jugos",
+                "Bebidas Alcohólicas"
+            ];
             keys.forEach(function(k){
                 if (k === 'id' || k === 'activo') return;
                 var row = document.createElement('div'); row.className = 'form-row';
                 var label = document.createElement('label'); label.setAttribute('for','pc_'+k);
                 label.textContent = (k === 'codigo_barra' ? 'Código de barra' : (k.replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}))); 
-                var input = document.createElement('input'); input.id = 'pc_'+k; input.name = k;
-                if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) {
-                    input.type = 'number';
-                    input.min = '0';
-                    input.step = '1';
-                    input.value = '0';
-                } else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) {
-                    input.type = 'number';
-                    input.min = '0';
-                    input.step = '0.01';
+                if (k === 'categoria') {
+                    var sel = document.createElement('select'); sel.id = 'pc_'+k; sel.name = k;
+                    CATEGORIES.forEach(function(c){ var opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+                    var optOther = document.createElement('option'); optOther.value = '__other__'; optOther.textContent = 'Otra...'; sel.appendChild(optOther);
+                    var other = document.createElement('input'); other.type = 'text'; other.id = 'pc_'+k+'_other'; other.placeholder = 'Ingrese nueva categoría'; other.style.display = 'none'; other.style.marginTop = '6px';
+                    sel.addEventListener('change', function(){ if (sel.value === '__other__') { other.style.display = 'block'; } else { other.style.display = 'none'; } });
+                    row.appendChild(label); row.appendChild(sel); row.appendChild(other); container.appendChild(row);
                 } else {
-                    input.type = 'text';
+                    var input = document.createElement('input'); input.id = 'pc_'+k; input.name = k;
+                    if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) {
+                        input.type = 'number';
+                        input.min = '0';
+                        input.step = '1';
+                        input.value = '0';
+                    } else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) {
+                        input.type = 'number';
+                        input.min = '0';
+                        input.step = '0.01';
+                    } else {
+                        input.type = 'text';
+                    }
+                    row.appendChild(label); row.appendChild(input); container.appendChild(row);
                 }
-                row.appendChild(label); row.appendChild(input); container.appendChild(row);
             });
             var actions = document.createElement('div'); actions.className = 'actions'; actions.style.marginTop = '14px';
             var btnCancel = document.createElement('button'); btnCancel.className = 'btn-ghost'; btnCancel.textContent = 'Cancelar';
@@ -186,6 +217,7 @@
                         if (isNaN(f) || f < 0) { globalShowToast('Precio debe ser un número >= 0','error'); return; }
                     }
                 }
+                var catEl = document.getElementById('pc_categoria'); if (catEl && catEl.value === '__other__') { var other = document.getElementById('pc_categoria_other'); if (other) catEl.value = other.value || ''; }
                 btnCreate.disabled=true; var old = btnCreate.textContent; btnCreate.textContent='Creando...'; var p = new URLSearchParams(); p.append('action','create'); keys.forEach(function(k){ if (k === 'id') return; var el = document.getElementById('pc_'+k); if (!el) return; p.append(k, el.value || ''); }); fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ pModal.style.display='none'; globalShowToast('Producto creado','success'); load(); } else { globalShowToast('Error al crear producto: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('create product',err); globalShowToast && globalShowToast('Error al crear producto','error'); }).finally(function(){ btnCreate.disabled=false; btnCreate.textContent=old; }); };
         });
         pcCancel && pcCancel.addEventListener('click', function(e){ e.preventDefault(); pModal.style.display='none'; });
@@ -198,7 +230,27 @@
         if (action === 'delete'){
             openGlobalConfirm('Eliminar producto?', function(){
                 var p = new URLSearchParams(); p.append('action','delete'); p.append('id', id);
-                fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ globalShowToast('Producto eliminado','success'); load(); } else { globalShowToast('Error al eliminar producto','error'); } }).catch(function(err){ console.error('delete product',err); globalShowToast('Error al eliminar producto','error'); });
+                fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()})
+                    .then(function(r){
+                        if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+(t||r.statusText)); });
+                        return r.json();
+                    })
+                    .then(function(res){
+                        if (res && res.ok){
+                            globalShowToast('Producto eliminado','success');
+                            load();
+                        } else {
+                            var msg = 'Error al eliminar producto';
+                            if (res && res.error) msg += ': ' + res.error;
+                            if (res && res.message) msg += ' - ' + res.message;
+                            globalShowToast(msg,'error');
+                            console.error('delete product response', res);
+                        }
+                    }).catch(function(err){
+                        console.error('delete product',err);
+                        var text = err && err.message ? err.message : String(err);
+                        globalShowToast('Error eliminando producto: '+text,'error');
+                    });
             });
         } else if (action === 'edit'){
             var modal = document.getElementById('editProductModal');
@@ -210,20 +262,50 @@
             var idx = window.PRODUCTS_COL_INDEX || {};
             function cellValue(key){ var i = idx[key]; if (i === undefined) return ''; var c = tr.children[i]; return c ? c.textContent.trim() : ''; }
             var labels = { nombre: 'Nombre', codigo_barra: 'Código', categoria: 'Categoría', stock: 'Stock', sku: 'SKU', descripcion: 'Descripción', marca: 'Marca', unidad_medida: 'Unidad Medida', precio: 'Precio (s./)'};
+            var CATEGORIES = [
+                "Frutas y Verduras (F&V)",
+                "Carnicería",
+                "Pescadería",
+                "Panadería y Repostería",
+                "Lácteos, Huevos y Refrigerados",
+                "Abarrotes / Víveres Secos",
+                "Conservas y Enlatados",
+                "Cereales y Desayuno",
+                "Snacks, Galletas y Golosinas",
+                "Carnes y Pescados congelados",
+                "Vegetales y Frutas congeladas",
+                "Comidas Preparadas Congeladas",
+                "Helados y Postres congelados",
+                "Limpieza del Hogar",
+                "Cuidado Personal y Farmacia",
+                "Higiene Femenina y de Bebés",
+                "Mascotas",
+                "Aguas",
+                "Refrescos y Jugos",
+                "Bebidas Alcohólicas"
+            ];
             keys.forEach(function(k){
                 if (k === 'id' || k === 'activo') return;
                 var row = document.createElement('div'); row.className = 'form-row';
                 var label = document.createElement('label'); label.setAttribute('for','ep_'+k); label.textContent = labels[k] || (k.replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}));
-                var input = document.createElement('input'); input.id = 'ep_'+k; input.name = k;
-                if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) {
-                    input.type = 'number'; input.min = '0'; input.step = '1';
-                } else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) {
-                    input.type = 'number'; input.min = '0'; input.step = '0.01';
+                if (k === 'categoria') {
+                    var sel = document.createElement('select'); sel.id = 'ep_'+k; sel.name = k;
+                    CATEGORIES.forEach(function(c){ var opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
+                    var optOther = document.createElement('option'); optOther.value = '__other__'; optOther.textContent = 'Otra...'; sel.appendChild(optOther);
+                    var other = document.createElement('input'); other.type = 'text'; other.id = 'ep_'+k+'_other'; other.placeholder = 'Ingrese nueva categoría'; other.style.display = 'none'; other.style.marginTop = '6px';
+                    sel.addEventListener('change', function(){ if (sel.value === '__other__') { other.style.display = 'block'; } else { other.style.display = 'none'; } });
+                    sel.value = cellValue(k) || '';
+                    var found = false; for (var ii=0; ii<sel.options.length; ii++){ if (sel.options[ii].value === sel.value) { found = true; break; } }
+                    if (!found) { sel.value = '__other__'; other.style.display = 'block'; other.value = cellValue(k) || ''; }
+                    row.appendChild(label); row.appendChild(sel); row.appendChild(other); container.appendChild(row);
                 } else {
-                    input.type = 'text';
+                    var input = document.createElement('input'); input.id = 'ep_'+k; input.name = k;
+                    if (k.toLowerCase().indexOf('stock') !== -1 || k.toLowerCase().indexOf('cantidad') !== -1) { input.type = 'number'; input.min = '0'; input.step = '1'; }
+                    else if (k.toLowerCase().indexOf('precio') !== -1 || k.toLowerCase().indexOf('price') !== -1 || k.toLowerCase().indexOf('cost') !== -1) { input.type = 'number'; input.min = '0'; input.step = '0.01'; }
+                    else { input.type = 'text'; }
+                    input.value = cellValue(k);
+                    row.appendChild(label); row.appendChild(input); container.appendChild(row);
                 }
-                input.value = cellValue(k);
-                row.appendChild(label); row.appendChild(input); container.appendChild(row);
             });
             var actions = document.createElement('div'); actions.className = 'actions'; actions.style.marginTop = '14px';
             var btnCancel = document.createElement('button'); btnCancel.id = 'epCancel'; btnCancel.className = 'btn-ghost'; btnCancel.textContent = 'Cancelar';
@@ -246,6 +328,7 @@
                     }
                 }
                 btnSave.disabled=true; var old = btnSave.textContent; btnSave.textContent='Guardando...';
+                var catEl = document.getElementById('ep_categoria'); if (catEl && catEl.value === '__other__') { var other = document.getElementById('ep_categoria_other'); if (other) catEl.value = other.value || ''; }
                 var p = new URLSearchParams(); p.append('action','update'); p.append('id', id);
                 keys.forEach(function(k){ if (k === 'id') return; var el = document.getElementById('ep_'+k); if (!el) return; p.append(k, el.value || ''); });
                 fetch((window.APP_CTX||'') + '/admin/api/productos', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ modal.style.display='none'; globalShowToast('Producto actualizado','success'); load(); } else { globalShowToast('Error al actualizar producto: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('update product',err); globalShowToast('Error al actualizar producto','error'); }).finally(function(){ btnSave.disabled=false; btnSave.textContent=old; });

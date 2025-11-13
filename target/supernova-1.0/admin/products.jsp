@@ -47,40 +47,40 @@
             </div>
             <div>
                 <label class="small">Categoria</label>
-                <select name="categoria">
-                    <%
-                        String selectedCat = (editProduct != null && editProduct.get("categoria") != null) ? String.valueOf(editProduct.get("categoria")) : "";
-                        // canonical categories we want to show even if DB currently has none
-                        List<String> canonical = Arrays.asList("procesador", "tarjeta_grafica", "memoria", "almacenamiento", "fuentes", "gabinetes", "placa_madre");
-                        java.util.Set<String> categorySet = new java.util.LinkedHashSet<>();
-                        categorySet.addAll(canonical);
-                        try (Connection dbc = DBConnection.getConnection();
-                             PreparedStatement cps = dbc.prepareStatement("SELECT DISTINCT categoria FROM productos ORDER BY categoria");
-                             ResultSet crs = cps.executeQuery()) {
-                            while (crs.next()) {
-                                String c = crs.getString(1);
-                                if (c != null && !c.trim().isEmpty()) categorySet.add(c.trim());
-                            }
-                        } catch (SQLException e) {
-                            // ignore and fall back to canonical only
-                        }
-
-                        for (String val : categorySet) {
-                            String label = val.replace('_', ' ');
-                            // human friendly mapping
-                            if ("procesador".equalsIgnoreCase(val) || "procesadores".equalsIgnoreCase(val)) label = "Procesadores";
-                            else if (val.toLowerCase().contains("tarjeta") || val.toLowerCase().contains("grafica") || val.toLowerCase().contains("tarjeta_grafica")) label = "Tarjetas Gráficas";
-                            else if (val.toLowerCase().contains("memoria") || val.toLowerCase().contains("memorias") ) label = "Memorias RAM";
-                            else if (val.toLowerCase().contains("almacenamiento")) label = "Almacenamiento";
-                            else if (val.toLowerCase().contains("fuente")) label = "Fuentes de Poder";
-                            else if (val.toLowerCase().contains("gabinete")) label = "Gabinetes";
-                            else if (val.toLowerCase().contains("placa") || val.toLowerCase().contains("madre")) label = "Placas Madre";
-                    %>
-                    <option value="<%= val %>" <%= val.equals(selectedCat) ? "selected" : "" %>><%= label %></option>
-                    <%
-                        }
-                    %>
+                <%
+                    String selectedCat = (editProduct != null && editProduct.get("categoria") != null) ? String.valueOf(editProduct.get("categoria")) : "";
+                    List<String> categories = Arrays.asList(
+                        "Frutas y Verduras (F&V)",
+                        "Carnicería",
+                        "Pescadería",
+                        "Panadería y Repostería",
+                        "Lácteos, Huevos y Refrigerados",
+                        "Abarrotes / Víveres Secos",
+                        "Conservas y Enlatados",
+                        "Cereales y Desayuno",
+                        "Snacks, Galletas y Golosinas",
+                        "Carnes y Pescados congelados",
+                        "Vegetales y Frutas congeladas",
+                        "Comidas Preparadas Congeladas",
+                        "Helados y Postres congelados",
+                        "Limpieza del Hogar",
+                        "Cuidado Personal y Farmacia",
+                        "Higiene Femenina y de Bebés",
+                        "Mascotas",
+                        "Aguas",
+                        "Refrescos y Jugos",
+                        "Bebidas Alcohólicas"
+                    );
+                    boolean known = categories.contains(selectedCat);
+                %>
+                <select id="categoriaSelect">
+                    <% for (String c : categories) { %>
+                        <option value="<%= c %>" <%= (c.equals(selectedCat) ? "selected" : "") %>><%= c %></option>
+                    <% } %>
+                    <option value="__other__" <%= (!known && selectedCat != null && !selectedCat.isEmpty()) ? "selected" : "" %>>Otra...</option>
                 </select>
+                <input type="hidden" name="categoria" id="categoriaHidden" value="<%= (known ? selectedCat : (selectedCat != null ? selectedCat : (categories.size()>0?categories.get(0):""))) %>" />
+                <input type="text" id="categoriaOtra" placeholder="Ingrese nueva categoría" style="display:none;margin-top:6px;" value="<%= (!known && selectedCat != null) ? selectedCat : "" %>" />
             </div>
             <div>
                 <label class="small">Precio</label>
@@ -217,6 +217,32 @@
                 });
                 sorted.forEach(r=> tbody.appendChild(r));
             });
+        })();
+    </script>
+    <script>
+        (function(){
+            var select = document.getElementById('categoriaSelect');
+            var hidden = document.getElementById('categoriaHidden');
+            var otra = document.getElementById('categoriaOtra');
+            if (!select || !hidden || !otra) return;
+            function syncFromSelect(){
+                if (select.value === '__other__'){
+                    otra.style.display = 'block';
+                    hidden.value = otra.value || '';
+                } else {
+                    otra.style.display = 'none';
+                    hidden.value = select.value || '';
+                }
+            }
+            select.addEventListener('change', syncFromSelect);
+            otra.addEventListener('input', function(){ hidden.value = this.value || ''; });
+            var found = false;
+            for (var i=0;i<select.options.length;i++){
+                if (select.options[i].value === hidden.value){ found = true; break; }
+            }
+            if (!found){ select.value = '__other__'; otra.style.display = 'block'; otra.value = hidden.value || ''; }
+            else { otra.style.display = 'none'; select.value = hidden.value; }
+            syncFromSelect();
         })();
     </script>
     

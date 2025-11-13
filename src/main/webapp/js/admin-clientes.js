@@ -58,7 +58,6 @@
     var ccDni = document.getElementById('ccDni');
     var ccEmail = document.getElementById('ccEmail');
     var ecTelefonoEl = document.getElementById('ecTelefono');
-    var ecDniEl = document.getElementById('ecDni');
         var ccCancel = document.getElementById('ccCancel');
         var ccCreate = document.getElementById('ccCreate');
 
@@ -91,10 +90,7 @@
             ecTelefonoEl.addEventListener('input', function(){ var v = sanitizePhone(this.value); if (this.value !== v) this.value = v; });
             ecTelefonoEl.addEventListener('paste', function(e){ setTimeout(function(){ if (ecTelefonoEl) ecTelefonoEl.value = sanitizePhone(ecTelefonoEl.value); },50); });
         }
-        if (ecDniEl) {
-            ecDniEl.addEventListener('input', function(){ var v = sanitizeDni(this.value); if (this.value !== v) this.value = v; });
-            ecDniEl.addEventListener('paste', function(e){ setTimeout(function(){ if (ecDniEl) ecDniEl.value = sanitizeDni(ecDniEl.value); },50); });
-        }
+        
         [ccNombre, ccDireccion, ccEmail].forEach(function(el){ if (!el) return; el.addEventListener('input', updateCreateState); });
 
     if (btnNew) btnNew.addEventListener('click', function(e){ e.preventDefault(); ccNombre.value=''; ccDireccion.value=''; ccTelefono.value=''; ccDni && (ccDni.value=''); ccEmail.value=''; if (ccCreate) ccCreate.disabled = true; updateCreateState(); cModal.style.display='flex'; });
@@ -159,7 +155,6 @@
                 var modal = document.getElementById('editClientModal');
                 var ecId = document.getElementById('ecId');
                 var ecTelefono = document.getElementById('ecTelefono');
-                var ecDni = document.getElementById('ecDni');
                 var ecDireccion = document.getElementById('ecDireccion');
                 var ecEmail = document.getElementById('ecEmail');
                 var ecCancel = document.getElementById('ecCancel');
@@ -169,8 +164,7 @@
                 ecEmail.value = tr.children[4].textContent.trim();
                 var telefonoText = tr.children[5] ? tr.children[5].textContent.trim() : '';
                 ecTelefono.value = telefonoText;
-                var dniText = tr.children[2] ? tr.children[2].textContent.trim() : '';
-                if (ecDni) ecDni.value = sanitizeDni(dniText);
+                
                 var direccionText = tr.children[3] ? tr.children[3].textContent.trim() : '';
                 if (ecDireccion) ecDireccion.value = direccionText;
                 modal.style.display = 'flex';
@@ -187,7 +181,6 @@
                         return;
                     }
                     var telefonoClean = sanitizePhone(ecTelefono.value||'');
-                    var dniValEdit = ecDni ? (ecDni.value||'').trim() : '';
                     var direccionVal = ecDireccion ? (ecDireccion.value||'').trim() : '';
                     if (!/^[0-9]{1,9}$/.test(telefonoClean)) {
                         try{ globalShowToast('El teléfono debe contener hasta 9 dígitos numéricos','error'); }catch(e){}
@@ -199,7 +192,6 @@
                     p.append('action','update');
                     p.append('id', ecId.value || '');
                     p.append('telefono', telefonoClean || '');
-                    p.append('dni', dniValEdit || '');
                     p.append('direccion', direccionVal || '');
                     p.append('email', emailVal || '');
                     fetch((window.APP_CTX||'') + '/admin/api/clientes', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()})
