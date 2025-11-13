@@ -91,14 +91,20 @@
             var ruleNumber = document.getElementById('ruleNumber');
             function closeCreate(){ cModal.style.display='none'; cuCreate.disabled=false; cuCreate.textContent='Aceptar y registrarse'; }
             function updateRulesUI(r){ updateRulesUIFor([ruleLength, ruleUpper, ruleLower, ruleSpecial, ruleNumber], r); }
-            function canCreate(){ var v = cuPassword.value || ''; var r = checkRules(v); return !!(r.length && r.upper && r.lower && r.number && (cuEmail.value||'').trim()); }
+            function isValidEmail(v){ if(!v) return false; v = v.trim(); return v.indexOf('@') !== -1 && v.indexOf('.') !== -1; }
+            function canCreate(){ var v = cuPassword.value || ''; var r = checkRules(v); return !!(r.length && r.upper && r.lower && r.number && r.special && isValidEmail(cuEmail.value||'')); }
             btnNew.addEventListener('click', function(e){ e.preventDefault(); cuFirst.value=''; cuLast.value=''; cuEmail.value=''; cuRol.value='operario'; cuPassword.value=''; updateRulesUI(checkRules('')); cuCreate.disabled=true; cModal.style.display='flex'; });
             cuCancel.addEventListener('click', function(e){ e.preventDefault(); closeCreate(); });
             cuToggle.addEventListener('click', function(e){ e.preventDefault(); if (cuPassword.type === 'password'){ cuPassword.type = 'text'; } else { cuPassword.type = 'password'; } });
             cuPassword.addEventListener('input', function(){ var r = checkRules(this.value||''); updateRulesUI(r); cuCreate.disabled = !canCreate(); });
             cuEmail.addEventListener('input', function(){ cuCreate.disabled = !canCreate(); });
-            cuCreate.addEventListener('click', function(e){ e.preventDefault(); cuCreate.disabled=true; cuCreate.textContent='Creando...'; var nombre = ((cuFirst.value||'') + ' ' + (cuLast.value||'')).trim(); if (!nombre) nombre = cuFirst.value || cuLast.value || ''; var p = new URLSearchParams(); p.append('action','create'); p.append('nombre', nombre); p.append('email', cuEmail.value || ''); p.append('rol', cuRol.value || 'operario'); p.append('password', cuPassword.value || ''); fetch((window.APP_CTX||'') + '/admin/api/users', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ closeCreate(); globalShowToast('Usuario creado','success'); load(); } else { globalShowToast('Error al crear usuario: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ try{ globalShowToast('Error al crear usuario','error'); }catch(e){} }).finally(function(){ cuCreate.disabled=false; cuCreate.textContent='Aceptar y registrarse'; });
+            cuCreate.addEventListener('click', function(e){ e.preventDefault(); var emailVal = (cuEmail.value||'').trim(); if (!isValidEmail(emailVal)) { try{ globalShowToast('Ingrese un correo electrónico correcto','error'); }catch(e){}; return; } cuCreate.disabled=true; cuCreate.textContent='Creando...'; var nombre = ((cuFirst.value||'') + ' ' + (cuLast.value||'')).trim(); if (!nombre) nombre = cuFirst.value || cuLast.value || ''; var p = new URLSearchParams(); p.append('action','create'); p.append('nombre', nombre); p.append('email', emailVal || ''); p.append('rol', cuRol.value || 'operario'); p.append('password', cuPassword.value || ''); fetch((window.APP_CTX||'') + '/admin/api/users', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()})
+                .then(function(r){ return r.json(); })
+                .then(function(res){ if (res && res.ok){ closeCreate(); globalShowToast('Usuario creado','success'); load(); } else { if (res && res.error === 'invalid_email') { try{ globalShowToast('Ingrese un correo electrónico correcto','error'); }catch(e){} } else if (res && res.error === 'invalid_password_special') { try{ globalShowToast('La contraseña debe incluir al menos un carácter especial','error'); }catch(e){} } else { globalShowToast('Error al crear usuario: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } } })
+                .catch(function(err){ try{ globalShowToast('Error al crear usuario','error'); }catch(e){} }).finally(function(){ cuCreate.disabled=false; cuCreate.textContent='Aceptar y registrarse'; });
             });
+
+
         }
         document.body.addEventListener('click', function(e){
             const btn = e.target.closest('button[data-action]'); if(!btn) return;
@@ -143,11 +149,20 @@
                 function closeModal(){ modal.style.display='none'; euSave.disabled=false; euSave.textContent='Guardar'; }
                 euCancel.onclick = function(e){ e.preventDefault(); closeModal(); };
                 euToggle && euToggle.addEventListener('click', function(e){ e.preventDefault(); if (euPassword.type === 'password'){ euPassword.type = 'text'; } else { euPassword.type = 'password'; } });
-                euPassword.addEventListener('input', function(){ var r = checkRules(this.value||''); updateRulesUIFor([eruleLength, eruleUpper, eruleLower, eruleSpecial, eruleNumber], r); var hasReq = r.length && r.upper && r.lower && r.number; euSave.disabled = !( (this.value && hasReq) || (!this.value && (euEmail.value||'').trim()) ); });
-                euEmail.addEventListener('input', function(){ euSave.disabled = !( (!euPassword.value && (euEmail.value||'').trim()) || (euPassword.value && (function(){ var rr = checkRules(euPassword.value||''); return rr.length && rr.upper && rr.lower && rr.number; })()) ); });
+                euPassword.addEventListener('input', function(){ var r = checkRules(this.value||''); updateRulesUIFor([eruleLength, eruleUpper, eruleLower, eruleSpecial, eruleNumber], r); var hasReq = r.length && r.upper && r.lower && r.number && r.special; euSave.disabled = !( (this.value && hasReq) || (!this.value && (euEmail.value||'').trim()) ); });
+                euEmail.addEventListener('input', function(){ euSave.disabled = !( (!euPassword.value && (euEmail.value||'').trim()) || (euPassword.value && (function(){ var rr = checkRules(euPassword.value||''); return rr.length && rr.upper && rr.lower && rr.number && rr.special; })()) ); });
                 euSave.onclick = function(e){ e.preventDefault(); euSave.disabled=true; euSave.textContent='Guardando...';
-                    var p = new URLSearchParams(); p.append('action','update'); p.append('id', id); p.append('email', euEmail.value||''); p.append('rol', euRol.value||''); if (euPassword.value) p.append('password', euPassword.value);
-                    fetch((window.APP_CTX||'') + '/admin/api/users', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if (res && res.ok){ closeModal(); globalShowToast('Usuario actualizado','success'); load(); } else { globalShowToast('Error al actualizar: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } }).catch(function(err){ console.error('update user',err); globalShowToast('Error al actualizar usuario','error'); }).finally(function(){ euSave.disabled=false; euSave.textContent='Guardar'; });
+                    var emailToSend = (euEmail.value||'').trim();
+                    if (!emailToSend || emailToSend.indexOf('@') === -1 || emailToSend.indexOf('.') === -1) {
+                        try{ globalShowToast('Ingrese un correo electrónico correcto','error'); }catch(e){}
+                        euSave.disabled=false; euSave.textContent='Guardar';
+                        return;
+                    }
+                    var p = new URLSearchParams(); p.append('action','update'); p.append('id', id); p.append('email', emailToSend||''); p.append('rol', euRol.value||''); if (euPassword.value) p.append('password', euPassword.value);
+                    fetch((window.APP_CTX||'') + '/admin/api/users', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()})
+                        .then(function(r){ return r.json(); })
+                        .then(function(res){ if (res && res.ok){ closeModal(); globalShowToast('Usuario actualizado','success'); load(); } else { if (res && res.error === 'invalid_email') { try{ globalShowToast('Ingrese un correo electrónico correcto','error'); }catch(e){} } else if (res && res.error === 'invalid_password_special') { try{ globalShowToast('La contraseña debe incluir al menos un carácter especial','error'); }catch(e){} } else { globalShowToast('Error al actualizar: '+(res && res.error?res.error:JSON.stringify(res)),'error'); } } })
+                        .catch(function(err){ console.error('update user',err); globalShowToast('Error al actualizar usuario','error'); }).finally(function(){ euSave.disabled=false; euSave.textContent='Guardar'; });
                 };
             }
         });

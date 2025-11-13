@@ -47,6 +47,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Nombre</th>
+                                <th>DNI / RUC</th>
                                 <th>Dirección</th>
                                 <th>Email</th>
                                 <th>Teléfono</th>
@@ -77,7 +78,11 @@
                 </div>
                 <div class="form-row">
                     <label for="ccTelefono">Teléfono</label>
-                    <input id="ccTelefono" type="text" />
+                    <input id="ccTelefono" type="tel" inputmode="numeric" pattern="\\d{1,9}" maxlength="9" />
+                </div>
+                <div class="form-row">
+                    <label for="ccDni">DNI / RUC</label>
+                    <input id="ccDni" type="text" inputmode="numeric" pattern="\\d{1,11}" maxlength="11" />
                 </div>
                 <div class="form-row">
                     <label for="ccEmail">Email</label>
@@ -98,7 +103,15 @@
                 
                 <div class="form-row">
                     <label for="ecTelefono">Teléfono</label>
-                    <input id="ecTelefono" type="text" />
+                    <input id="ecTelefono" type="tel" inputmode="numeric" pattern="\\d{1,9}" maxlength="9" />
+                </div>
+                <div class="form-row">
+                    <label for="ecDni">DNI / RUC</label>
+                    <input id="ecDni" type="text" inputmode="numeric" pattern="\\d{1,11}" maxlength="11" />
+                </div>
+                <div class="form-row">
+                    <label for="ecDireccion">Dirección</label>
+                    <input id="ecDireccion" type="text" />
                 </div>
                 <div class="form-row">
                     <label for="ecEmail">Email</label>

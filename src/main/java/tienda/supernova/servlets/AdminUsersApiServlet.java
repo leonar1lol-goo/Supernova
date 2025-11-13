@@ -110,12 +110,21 @@ public class AdminUsersApiServlet extends HttpServlet {
                 String password = req.getParameter("password");
                 if (nombre == null) nombre = "";
                 if (email == null) email = "";
-                if (rol == null) rol = "user";
+                String emailTrim = email.trim();
+                if (emailTrim.isEmpty() || !emailTrim.contains("@") || !emailTrim.contains(".")) {
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_email\"}");
+                    return;
+                }
                 if (password == null) password = "";
+                if (password.isEmpty() || !password.matches(".*[^A-Za-z0-9].*")) {
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_password_special\"}");
+                    return;
+                }
+                if (rol == null) rol = "user";
                 try (PreparedStatement ps = conn.prepareStatement("INSERT INTO Usuario (nombre_usuario, rol, email, `contraseña`) VALUES (?,?,?,?)", java.sql.Statement.RETURN_GENERATED_KEYS)){
                     ps.setString(1, nombre);
                     ps.setString(2, rol);
-                    ps.setString(3, email);
+                    ps.setString(3, emailTrim);
                     ps.setString(4, password);
                     ps.executeUpdate();
                     try (ResultSet gk = ps.getGeneratedKeys()){
@@ -187,6 +196,20 @@ public class AdminUsersApiServlet extends HttpServlet {
                 String email = req.getParameter("email");
                 String rol = req.getParameter("rol");
                 String password = req.getParameter("password");
+                if (email != null) {
+                    String emailTrim = email.trim();
+                    if (emailTrim.isEmpty() || !emailTrim.contains("@") || !emailTrim.contains(".")) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_email\"}");
+                        return;
+                    }
+                    email = emailTrim;
+                }
+                if (password != null) {
+                    if (password.isEmpty() || !password.matches(".*[^A-Za-z0-9].*")) {
+                        resp.getWriter().print("{\"ok\":false,\"error\":\"invalid_password_special\"}");
+                        return;
+                    }
+                }
                 java.util.List<String> sets = new java.util.ArrayList<>();
                 java.util.List<Object> paramsList = new java.util.ArrayList<>();
                 if (nombre != null) { sets.add("nombre_usuario = ?"); paramsList.add(nombre); }
