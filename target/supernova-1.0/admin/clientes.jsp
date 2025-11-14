@@ -5,8 +5,9 @@
 <%
     jakarta.servlet.http.HttpSession _s = request.getSession(false);
     String _role = _s != null ? (String) _s.getAttribute("role") : null;
-    if (_role == null || !(_role.equalsIgnoreCase("admin") || _role.equalsIgnoreCase("supervisor"))) {
-        response.sendRedirect(ctx + "/admin/dashboard");
+    // Allow any authenticated user to view clientes page. Redirect to login if not authenticated.
+    if (_role == null) {
+        response.sendRedirect(ctx + "/Login.jsp?admin=required");
         return;
     }
 %>

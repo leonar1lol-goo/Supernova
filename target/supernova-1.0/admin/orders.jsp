@@ -110,7 +110,7 @@
                         <input id="moDireccion" type="text" placeholder="Dirección de envío" readonly required title="Se carga desde la tabla Cliente" />
                     </div>
                     <div class="form-row">
-                        <label for="moCostoEnvio">Costo envío (opcional):</label>
+                        <label for="moCostoEnvio">Costo envío:</label>
                         <input id="moCostoEnvio" type="number" step="0.01" placeholder="0.00" />
                     </div>
                     <div class="form-row">
@@ -168,20 +168,54 @@
                     </div>
                     <hr />
                     <div class="form-row">
-                        <label for="itProducto">ID producto:</label>
-                        <input id="itProducto" type="number" placeholder="id producto" />
+                        <label for="itProductoSelect">Producto:</label>
+                        <select id="itProductoSelect">
+                            <option value="">-- seleccionar producto --</option>
+                        </select>
+                        <div id="itProductoInfo" style="margin-top:8px;color:#334155;font-size:0.95rem"></div>
                     </div>
                     <div class="form-row">
                         <label for="itCantidad">Cantidad:</label>
                         <input id="itCantidad" type="number" min="1" step="1" pattern="[0-9]*" inputmode="numeric" placeholder="cantidad" oninput="this.value=this.value.replace(/\D/g,'')" />
                     </div>
-                    <div class="form-row">
-                        <label for="itPrecio">Precio unitario (opcional):</label>
-                        <input id="itPrecio" type="text" placeholder="0.00" />
-                    </div>
                     <div class="actions">
                         <button id="itClose" class="btn-ghost">Cerrar</button>
                         <button id="itAdd" class="btn-save">Añadir Item</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="summaryModal" class="modal-backdrop" aria-hidden="true">
+                <div class="modal" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" style="max-width:820px;">
+                    <h3 id="summaryTitle">Resumen del Pedido <span id="summaryOrderId"></span></h3>
+                    <div id="summaryContent" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:8px"> 
+                        <div>
+                            <div style="font-size:1.3rem;font-weight:700" id="sOrderNumber"></div>
+                            <div style="margin-top:12px">
+                                <div><strong>Cliente</strong><div id="sCliente" style="margin-top:6px;color:#334155"></div></div>
+                                <div style="margin-top:10px"><strong>Estado</strong><div id="sEstado" style="display:inline-block;margin-top:6px;padding:6px 10px;border-radius:16px;background:#FCEFC7;color:#8A6A00"></div></div>
+                                <div style="margin-top:10px"><strong>Fecha</strong><div id="sFecha" style="margin-top:6px;color:#334155"></div></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div><strong>Operario asignado</strong><div id="sOperario" style="margin-top:6px;color:#334155"></div></div>
+                            <div style="margin-top:10px"><strong>Prioridad</strong><div id="sPrioridad" style="margin-top:6px;color:#334155"></div></div>
+                            <div style="margin-top:10px"><strong>Monto total</strong><div id="sTotal" style="margin-top:6px;color:#334155"></div></div>
+                        </div>
+                        <div style="grid-column:1 / 3;margin-top:8px">
+                            <strong>Productos</strong>
+                            <table style="width:100%;margin-top:8px;border-collapse:collapse">
+                                <thead><tr style="border-bottom:1px solid #eee"><th style="text-align:left;padding:8px">Nombre</th><th style="width:110px;text-align:center;padding:8px">Cantidad</th><th style="width:130px;text-align:right;padding:8px">Precio</th></tr></thead>
+                                <tbody id="sProductos"></tbody>
+                            </table>
+                        </div>
+                        <div style="grid-column:1 / 3;margin-top:8px">
+                            <strong>Dirección de entrega</strong>
+                            <div id="sDireccion" style="margin-top:6px;color:#334155"></div>
+                        </div>
+                    </div>
+                    <div class="actions" style="margin-top:12px;justify-content:flex-end">
+                        <button id="sClose" class="btn-save">Volver</button>
                     </div>
                 </div>
             </div>
@@ -222,6 +256,7 @@
                 var tr = document.createElement('tr');
                 var stateSlug = (o.estado||'').toLowerCase().replace(/\s+/g,'');
                 tr.setAttribute('data-state', stateSlug);
+                try { tr.setAttribute('data-id', o.id); tr.setAttribute('data-cliente', o.cliente||''); tr.setAttribute('data-estado', o.estado||''); tr.setAttribute('data-fecha', o.fecha||''); tr.setAttribute('data-fecha-est', o.fecha_entrega_estimada||''); tr.setAttribute('data-direccion', o.direccion_envio||''); tr.setAttribute('data-prioridad', o.prioridad||''); tr.setAttribute('data-costo-envio', o.costo_envio||''); tr.setAttribute('data-total', o.total||''); tr.setAttribute('data-id-usuario-gestiono', o.id_usuario_gestiono||''); }catch(e){}
                 var totalDisplay = o.totalIsItems ? (o.total + ' items') : ('S/.' + (Number(o.total||0).toFixed(2)));
                     var costoStr = '';
                     try{ if(o.costo_envio){ costoStr = ('S/.' + (Number(o.costo_envio).toFixed(2))); } }catch(e){ costoStr = (o.costo_envio||''); }
@@ -238,6 +273,7 @@
                                '<td>'+escapeHtml(o.notas||'')+'</td>'+
                                '<td class="text-center">'+totalDisplay+'</td>'+
                                '<td class="text-center">'
+                               +'<button class="action-btn btn-ghost small-btn" data-action="resumen" data-id="'+o.id+'">Ver resumen</button>'
                                +'<button class="action-btn btn-edit small-btn" data-action="edit" data-id="'+o.id+'">Editar</button>'
                                +'<button class="action-btn btn-ghost small-btn" data-action="items" data-id="'+o.id+'">Items</button>'
                                +'<button class="action-btn btn-danger small-btn" data-action="delete" data-id="'+o.id+'">Eliminar</button>'
@@ -514,13 +550,48 @@
                                 moEditSubmit.disabled = true; moEditSubmit.textContent='Guardando...';
                                 fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if(res && res.ok){ closeEdit(); alert('Actualizado'); load(); } else { alert('Error al actualizar: '+(res && res.error?res.error:JSON.stringify(res))); } }).catch(function(e){ console.error('update error',e); alert('Error al actualizar'); }).finally(function(){ moEditSubmit.disabled=false; moEditSubmit.textContent='Guardar'; }); };
                         }
+                    } else if (act === 'resumen'){
+                        var summaryModal = document.getElementById('summaryModal');
+                        var summaryOrderId = document.getElementById('summaryOrderId');
+                        var sOrderNumber = document.getElementById('sOrderNumber');
+                        var sCliente = document.getElementById('sCliente');
+                        var sOperario = document.getElementById('sOperario');
+                        var sEstado = document.getElementById('sEstado');
+                        var sFecha = document.getElementById('sFecha');
+                        var sPrioridad = document.getElementById('sPrioridad');
+                        var sTotal = document.getElementById('sTotal');
+                        var sProductos = document.getElementById('sProductos');
+                        var sDireccion = document.getElementById('sDireccion');
+                        var sClose = document.getElementById('sClose');
+                        var tr = btn.closest('tr');
+                        var ordId = id;
+                        if (summaryOrderId) summaryOrderId.textContent = ordId;
+                        if (sOrderNumber) sOrderNumber.textContent = '#'+ordId;
+                        if (sCliente) sCliente.textContent = tr ? (tr.getAttribute('data-cliente') || '') : '';
+                        if (sEstado) sEstado.textContent = tr ? (tr.getAttribute('data-estado') || '') : '';
+                        if (sFecha) sFecha.textContent = tr ? (tr.getAttribute('data-fecha') || '') : '';
+                        if (sPrioridad) sPrioridad.textContent = tr ? (tr.getAttribute('data-prioridad') || '') : '';
+                        if (sTotal) {
+                            var tot = tr ? (tr.getAttribute('data-total') || 0) : 0;
+                            try{ sTotal.textContent = 'S/.' + (Number(tot).toFixed ? Number(tot).toFixed(2) : tot); }catch(e){ sTotal.textContent = tot; }
+                        }
+                        if (sDireccion) sDireccion.textContent = tr ? (tr.getAttribute('data-direccion') || '') : '';
+                        if (sOperario) sOperario.textContent = '';
+                        if (sProductos) sProductos.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
+                        if (summaryModal) { summaryModal.classList.add('modal-show'); summaryModal.setAttribute('aria-hidden','false'); }
+                        function closeSummary(){ if(summaryModal){ summaryModal.classList.remove('modal-show'); summaryModal.setAttribute('aria-hidden','true'); } }
+                        if (sClose) sClose.onclick = function(ev){ ev.preventDefault(); closeSummary(); };
+                        var uid = tr ? tr.getAttribute('data-id-usuario-gestiono') : null;
+                        if (uid && uid !== '' && Number(uid) > 0){
+                            fetch(window.APP_CTX + '/admin/api/users', {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('no-users'); return r.json(); }).then(function(list){ var found = Array.isArray(list) ? list.find(function(u){ return (u.id+'' === (uid+'') || (u.id==uid)); }) : null; if(found) { if(sOperario) sOperario.textContent = found.nombre || found.nombre_usuario || found.name || ('#'+uid); } else { if(sOperario) sOperario.textContent = '#'+uid; } }).catch(function(){ if(sOperario) sOperario.textContent = '#'+uid; });
+                        } else { if(sOperario) sOperario.textContent = '(sin asignar)'; }
+                        fetch(window.APP_CTX + '/admin/api/orders?id='+encodeURIComponent(ordId)).then(function(r){ return r.json(); }).then(function(items){ if(!items || !items.length){ if(sProductos) sProductos.innerHTML = '<tr><td colspan="3"><i>(sin items)</i></td></tr>'; return; } var rows = ''; items.forEach(function(it){ var nombre = it.producto || it.nombre || ''; var cantidad = it.cantidad_solicitada || it.cantidad || it.qty || it.quantity || ''; var precio = it.precio_unitario || it.precio || it.price || it.unit_price || ''; var precioStr = (precio!=='' && precio!=null) ? ('S/.' + (Number(precio).toFixed?Number(precio).toFixed(2):precio)) : ''; rows += '<tr><td style="padding:8px 6px">'+escapeHtml(nombre)+'</td><td style="text-align:center">'+escapeHtml(cantidad)+'</td><td style="text-align:right;padding:8px 6px">'+escapeHtml(precioStr)+'</td></tr>'; }); if(sProductos) sProductos.innerHTML = rows; }).catch(function(e){ console.error('summary items',e); if(sProductos) sProductos.innerHTML = '<tr><td colspan="3" style="color:#a00">Error cargando items</td></tr>'; });
                     } else if (act === 'items'){
                         var itemsModal = document.getElementById('itemsModal');
                         var itemsList = document.getElementById('itemsList');
                         var itemsOrderId = document.getElementById('itemsOrderId');
-                        var itProducto = document.getElementById('itProducto');
+                        var itProductoSelect = document.getElementById('itProductoSelect');
                         var itCantidad = document.getElementById('itCantidad');
-                        var itPrecio = document.getElementById('itPrecio');
                         var itAdd = document.getElementById('itAdd');
                         var itClose = document.getElementById('itClose');
                         itemsOrderId.textContent = id;
@@ -529,14 +600,97 @@
                         function closeItems(){ itemsModal.classList.remove('modal-show'); itemsModal.setAttribute('aria-hidden','true'); }
                         if (itClose) itClose.onclick = function(ev){ ev.preventDefault(); closeItems(); };
 
-                        function loadItems(){ fetch(window.APP_CTX + '/admin/api/orders?id='+encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(items){ if(!items || !items.length){ itemsList.innerHTML = '<i>(sin items)</i>'; return; } var html = '<ul style="margin:0;padding-left:16px">'; items.forEach(function(it){ var precioUnit = it.precio_unitario ? (' | Precio: S/.' + (Number(it.precio_unitario).toFixed?Number(it.precio_unitario).toFixed(2):it.precio_unitario)) : ''; html += '<li>#'+it.id_detalle+' - '+escapeHtml(it.producto)+' Cantidad:'+it.cantidad_solicitada + precioUnit + '</li>'; }); html += '</ul>'; itemsList.innerHTML = html; }).catch(function(e){ console.error('items load',e); itemsList.innerHTML = '<span style="color:#a00">Error cargando items</span>'; }); }
+                        function loadItems(){
+                            fetch(window.APP_CTX + '/admin/api/orders?id='+encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(items){
+                                if(!items || !items.length){ itemsList.innerHTML = '<i>(sin items)</i>'; return; }
+                                var html = '<ul style="margin:0;padding-left:16px">';
+                                items.forEach(function(it){
+                                    var idDet = it.id_detalle || it.id_detalle_pedido || it.id || it.ID || '';
+                                    var nombre = it.producto || it.nombre || it.producto_nombre || it.title || '';
+                                    var cantidad = it.cantidad_solicitada || it.cantidad || it.qty || it.quantity || '';
+                                    var unidad = it.unidad || it.unidad_medida || it.uom || it.u || '';
+                                    var precioVal = it.precio_unitario || it.precio || it.price || it.unit_price || '';
+                                    var precioStr = '';
+                                    if(precioVal !== '' && precioVal != null){
+                                        try{ precioStr = 'S/.' + (Number(precioVal).toFixed ? Number(precioVal).toFixed(2) : escapeHtml(precioVal)); }catch(e){ precioStr = 'S/.' + escapeHtml(precioVal); }
+                                    }
+                                    var unidadText = unidad ? (' ' + escapeHtml(unidad)) : '';
+                                    html += '<li class="order-item" data-id="'+escapeHtml(idDet)+'">'
+                                        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+                                            + '<div style="flex:1">#'+escapeHtml(idDet)+' - '+escapeHtml(nombre)+'</div>'
+                                            + '<div style="white-space:nowrap">'
+                                                + (precioStr?('<span class="item-price">Precio: '+escapeHtml(precioStr)+'</span>'):'')
+                                            + '</div>'
+                                        + '</div>'
+                                        + '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">'
+                                            + '<label style="font-size:0.9rem;color:#333;margin-right:6px">Cantidad:</label>'
+                                            + '<input class="item-qty" type="number" min="1" value="'+escapeHtml(cantidad||'1')+'" style="width:90px;padding:6px;border:1px solid #ddd;border-radius:6px" />'
+                                            + (unidad?('<span style="color:#666;font-size:0.9rem">'+escapeHtml(unidad)+'</span>') :'')
+                                            + '<button class="btn-ghost item-update" style="margin-left:8px">Actualizar</button>'
+                                            + '<button class="btn-danger item-delete">Eliminar</button>'
+                                        + '</div>'
+                                    + '</li>';
+                                });
+                                html += '</ul>';
+                                itemsList.innerHTML = html;
+                                Array.from(itemsList.querySelectorAll('.item-update')).forEach(function(btn){
+                                    btn.addEventListener('click', function(ev){
+                                        ev.preventDefault();
+                                        var li = btn.closest('.order-item'); if(!li) return; 
+                                        var idd = li.getAttribute('data-id');
+                                        var input = li.querySelector('.item-qty'); if(!input) return; 
+                                        var newQty = (input.value||'').trim(); if(!newQty || Number(newQty) <= 0){ showToast('Ingrese una cantidad válida','error'); return; }
+                                        btn.disabled = true; btn.textContent = 'Actualizando...';
+                                        var params = new URLSearchParams(); params.append('action','updateItem'); params.append('id_detalle', idd); params.append('cantidad_solicitada', newQty);
+                                        fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: params.toString()}).then(function(r){ return r.json(); }).then(function(res){ if(res && res.ok){ showToast('Item actualizado','success'); loadItems(); load(); } else { showToast('Error al actualizar item','error'); } }).catch(function(e){ console.error('updateItem',e); showToast('Error al actualizar item','error'); }).finally(function(){ btn.disabled=false; btn.textContent='Actualizar'; });
+                                    });
+                                });
+                                Array.from(itemsList.querySelectorAll('.item-delete')).forEach(function(btn){
+                                    btn.addEventListener('click', function(ev){
+                                        ev.preventDefault();
+                                        if(!confirm('¿Eliminar este item?')) return;
+                                        var li = btn.closest('.order-item'); if(!li) return; var idd = li.getAttribute('data-id');
+                                        btn.disabled = true; btn.textContent = 'Eliminando...';
+                                        var params = new URLSearchParams(); params.append('action','removeItem'); params.append('id_detalle', idd);
+                                        fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: params.toString()}).then(function(r){ return r.json(); }).then(function(res){ if(res && res.ok){ showToast('Item eliminado','success'); loadItems(); load(); } else { showToast('Error al eliminar item','error'); } }).catch(function(e){ console.error('removeItem',e); showToast('Error al eliminar item','error'); }).finally(function(){ btn.disabled=false; btn.textContent='Eliminar'; });
+                                    });
+                                });
+                            }).catch(function(e){ console.error('items load',e); itemsList.innerHTML = '<span style="color:#a00">Error cargando items</span>'; });
+                        }
                         loadItems();
 
+                        var itemsProducts = [];
+                        if (itProductoSelect) {
+                            itProductoSelect.innerHTML = '<option value="">-- seleccionar producto --</option>';
+                            fetch(window.APP_CTX + '/admin/api/productos', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){ itemsProducts = Array.isArray(list) ? list : []; if(Array.isArray(list)){ list.forEach(function(p){ try{ var opt = document.createElement('option'); opt.value = p.id || p.ID || p.Id || p.ID_PRODUCTO || ''; var display = p.nombre || p.producto || p.name || p.titulo || Object.keys(p).filter(function(k){ return k.toLowerCase()!=='id' && k.toLowerCase()!=='precio'; }).map(function(k){ return p[k]; }).join(' '); opt.textContent = display || opt.value; itProductoSelect.appendChild(opt); }catch(e){} }); } }).catch(function(){ /* ignore */ });
+                            itProductoSelect.onchange = function(){
+                                try{
+                                    var pid = itProductoSelect.value || '';
+                                    var infoEl = document.getElementById('itProductoInfo');
+                                    if(!pid){ if(infoEl) infoEl.innerHTML = ''; if(itCantidad) { itCantidad.placeholder = 'cantidad'; try{ itCantidad.removeAttribute('max'); }catch(_){} } return; }
+                                    var prod = itemsProducts.find(function(x){ return (x.id||x.ID||x.Id||x.ID_PRODUCTO||'')+'' === pid+''; });
+                                    if(!prod){ if(infoEl) infoEl.innerHTML = ''; return; }
+                                    var unidad = prod.unidad || prod.unidad_medida || prod.uom || prod.u || prod.medida || prod.medida_unidad || '';
+                                    var precio = prod.precio || prod.price || prod.PRECIO || '';
+                                    var stock = prod.stock || prod.cantidad || prod.existencia || prod.stock_actual || '';
+                                    if(infoEl) infoEl.innerHTML = 'Unidad de medida: '+escapeHtml(unidad||'u') + (precio ? ' | Precio: S/.'+(Number(precio).toFixed?Number(precio).toFixed(2):precio) : '') + (stock ? ' | Stock: '+escapeHtml(stock) : '');
+                                    if(itCantidad) {
+                                        itCantidad.placeholder = unidad ? 'cantidad ('+unidad+')' : 'cantidad';
+                                        if(stock !== '') {
+                                            try{ itCantidad.setAttribute('max', Number(stock)); }catch(e){}
+                                        } else {
+                                            try{ itCantidad.removeAttribute('max'); }catch(e){}
+                                        }
+                                    }
+                                }catch(e){ console.error('itProductoSelect onchange', e); }
+                            };
+                        }
+
                         if (itAdd) {
-                            itAdd.onclick = function(ev){ ev.preventDefault(); var pid = (itProducto && itProducto.value||'').trim(); var qty = (itCantidad && itCantidad.value||'').trim(); var pr = (itPrecio && itPrecio.value||'').trim(); if(!pid || !qty){ alert('Producto y cantidad son requeridos'); return; }
-                                var p = new URLSearchParams(); p.append('action','addItem'); p.append('id_pedido', id); p.append('id_producto', pid); p.append('cantidad', qty); if(pr) p.append('precio_unitario', pr);
+                            itAdd.onclick = function(ev){ ev.preventDefault(); var pid = (itProductoSelect && itProductoSelect.value||'').trim(); var qty = (itCantidad && itCantidad.value||'').trim(); if(!pid || !qty){ alert('Producto y cantidad son requeridos'); return; }
+                                var p = new URLSearchParams(); p.append('action','addItem'); p.append('id_pedido', id); p.append('id_producto', pid); p.append('cantidad', qty);
                                 itAdd.disabled = true; itAdd.textContent = 'Añadiendo...';
-                                fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if(res && res.ok){ itProducto.value=''; itCantidad.value=''; itPrecio.value=''; loadItems(); load(); } else { alert('Error al añadir item'); } }).catch(function(e){ console.error('addItem',e); alert('Error al añadir item'); }).finally(function(){ itAdd.disabled=false; itAdd.textContent='Añadir Item'; }); };
+                                fetch(window.APP_CTX + '/admin/api/orders', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body: p.toString()}).then(function(r){ return r.json(); }).then(function(res){ if(res && res.ok){ if(itProductoSelect) itProductoSelect.value=''; if(itCantidad) itCantidad.value=''; loadItems(); load(); } else { alert('Error al añadir item'); } }).catch(function(e){ console.error('addItem',e); alert('Error al añadir item'); }).finally(function(){ itAdd.disabled=false; itAdd.textContent='Añadir Item'; }); } 
                         }
                     }
                 });

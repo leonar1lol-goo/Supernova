@@ -19,7 +19,7 @@ public class AdminClientesApiServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         jakarta.servlet.http.HttpSession s = req.getSession(false);
         String role = s != null ? (String) s.getAttribute("role") : null;
-        if (role == null || !(role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("supervisor"))) {
+        if (role == null) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             resp.setContentType("application/json;charset=UTF-8");
             resp.getWriter().print("{\"error\":\"forbidden\"}");
@@ -101,7 +101,7 @@ public class AdminClientesApiServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         jakarta.servlet.http.HttpSession s = req.getSession(false);
         String role = s != null ? (String) s.getAttribute("role") : null;
-        if (role == null || !(role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("supervisor"))) {
+        if (role == null) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             resp.setContentType("application/json;charset=UTF-8");
             resp.getWriter().print("{\"error\":\"forbidden\"}");
@@ -187,6 +187,13 @@ public class AdminClientesApiServlet extends HttpServlet {
                     return;
                 }
             } else if ("update".equalsIgnoreCase(action)) {
+                // Only admin/supervisor can update clients
+                if (!(role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("supervisor"))) {
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    resp.setContentType("application/json;charset=UTF-8");
+                    resp.getWriter().print("{\"error\":\"forbidden\"}");
+                    return;
+                }
                 String id = req.getParameter("id");
                 String dni = req.getParameter("dni");
                 String telefono = req.getParameter("telefono");
@@ -248,6 +255,13 @@ public class AdminClientesApiServlet extends HttpServlet {
                 resp.getWriter().print("{\"ok\":false,\"error\":\"not_found\"}");
                 return;
             } else if ("delete".equalsIgnoreCase(action)) {
+                // Only admin/supervisor can delete clients
+                if (!(role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("supervisor"))) {
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    resp.setContentType("application/json;charset=UTF-8");
+                    resp.getWriter().print("{\"error\":\"forbidden\"}");
+                    return;
+                }
                 String id = req.getParameter("id");
                 String[] tables = new String[]{"cliente","Cliente","clientes","Clientes"};
                 String[] idCols = new String[]{"id_cliente","id","id_client","idcliente"};
