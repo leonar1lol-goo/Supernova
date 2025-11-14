@@ -30,7 +30,19 @@ public class AdminFilter implements Filter {
         }
 
         if ("operario".equalsIgnoreCase(role) || "user".equalsIgnoreCase(role)) {
-            if (uri.startsWith(ctx + "/admin/dashboard") || uri.startsWith(ctx + "/admin/orders") || uri.startsWith(ctx + "/admin/route-optimization") || uri.startsWith(ctx + "/admin/product-validation") || uri.startsWith(ctx + "/admin/notifications") || uri.startsWith(ctx + "/admin/products") || uri.startsWith(ctx + "/admin/api/orders")) {
+
+            if (uri.startsWith(ctx + "/admin/dashboard")
+                    || uri.startsWith(ctx + "/admin/orders")
+                    || uri.startsWith(ctx + "/admin/route-optimization")
+                    || uri.startsWith(ctx + "/admin/product-validation")
+                    || uri.startsWith(ctx + "/admin/notifications")
+                    || uri.startsWith(ctx + "/admin/api/orders")
+                    || uri.startsWith(ctx + "/admin/api/productos")
+                    || uri.startsWith(ctx + "/admin/api/products")
+                    || uri.startsWith(ctx + "/admin/account")
+                    || uri.startsWith(ctx + "/admin/api/account")
+                    || uri.contains(ctx + "/admin/product")
+                    || uri.contains(ctx + "/admin/api/product")) {
                 chain.doFilter(request, response);
                 return;
             } else {

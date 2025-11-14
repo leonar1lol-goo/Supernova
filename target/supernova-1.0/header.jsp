@@ -18,6 +18,7 @@
                         <% if ("admin".equals(role)) { %>
                             <a href="<%= ctx %>/admin/dashboard">Panel Admin</a>
                         <% } %>
+                        <a id="miCuentaLink" href="<%= ctx %>/admin/account.jsp" onclick="window.location.href=this.getAttribute('href'); return false;" onmousedown="window.location.href=this.getAttribute('href'); return false;">Mi cuenta</a>
                         <a href="<%= ctx %>/logout.jsp">Cerrar Sesion</a>
                     </div>
                 </div>
@@ -43,4 +44,15 @@
     function globalShowToast(msg, kind){ try{ var ct = document.getElementById('globalToastContainer'); if(!ct) return; var d = document.createElement('div'); d.className = 'toast '+(kind||''); d.textContent = msg; d.style.padding='10px 14px'; d.style.borderRadius='8px'; d.style.color='#fff'; d.style.minWidth='180px'; d.style.boxShadow='0 6px 18px rgba(2,6,23,0.3)'; if(kind==='success') d.style.background='#0b8f3b'; else if(kind==='error') d.style.background='#c02828'; else d.style.background='#222'; ct.appendChild(d); setTimeout(function(){ d.style.transition='opacity 300ms'; d.style.opacity='0'; setTimeout(function(){ try{ ct.removeChild(d);}catch(e){} },350); },3500);}catch(e){console.log('toast',msg);} }
 
     function openGlobalConfirm(text, cbYes){ var bd = document.getElementById('globalConfirmBackdrop'); var txt = document.getElementById('globalConfirmText'); var btnOk = document.getElementById('globalConfirmOk'); var btnCancel = document.getElementById('globalConfirmCancel'); if(!bd||!txt||!btnOk||!btnCancel) return; txt.textContent = text; bd.style.display = 'flex'; function cleanup(){ bd.style.display='none'; btnOk.onclick = null; btnCancel.onclick = null; } btnCancel.onclick = function(e){ e.preventDefault(); cleanup(); }; btnOk.onclick = function(e){ e.preventDefault(); try{ cbYes && cbYes(); }catch(err){ console.error(err); } cleanup(); }; }
+</script>
+<script>
+    (function(){
+        try {
+            var mi = document.getElementById('miCuentaLink');
+            if (mi) mi.addEventListener('click', function(e){
+                var href = mi.getAttribute('href');
+                if (href) { window.location.href = href; }
+            });
+        } catch(err){ console.error(err); }
+    })();
 </script>

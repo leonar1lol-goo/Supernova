@@ -132,8 +132,8 @@ i[class^="fa"], i[class*=" fa-"] { font-style:normal; width:1em; display:inline-
 .filter-group { display:flex; gap:8px; margin:10px 0 16px 0 }
 .filter-btn { padding:8px 12px; border-radius:8px; border:1px solid #e6e9ee; background:transparent; cursor:pointer }
 .filter-btn.active { background:#f3f4f6; box-shadow:0 6px 16px rgba(16,24,40,0.04); }
-.modal-backdrop{ position:fixed; inset:0; background:rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1200 }
-.modal{ background:#fff; border-radius:12px; padding:22px; width:560px; max-width:calc(100% - 40px); box-shadow:0 12px 36px rgba(2,6,23,0.32); overflow:visible }
+.modal-backdrop{ position:fixed; inset:0; background:rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1200; padding:16px; box-sizing:border-box; overflow:auto }
+.modal{ background:#fff; border-radius:12px; padding:22px; width:100%; max-width:920px; box-shadow:0 12px 36px rgba(2,6,23,0.32); overflow:auto; max-height:calc(100vh - 32px); box-sizing:border-box }
 .modal h3{ margin:0 0 14px 0; font-size:1.05rem }
 .modal .form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px }
 .modal .form-row input, .modal .form-row select{ padding:10px 12px; border:1px solid #eef2f7; border-radius:8px; background:#fff }

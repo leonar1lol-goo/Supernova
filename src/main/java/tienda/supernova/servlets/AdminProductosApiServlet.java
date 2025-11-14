@@ -28,7 +28,7 @@ public class AdminProductosApiServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         jakarta.servlet.http.HttpSession s = req.getSession(false);
         String role = s != null ? (String) s.getAttribute("role") : null;
-        if (role == null || !(role.equalsIgnoreCase("admin") || role.equalsIgnoreCase("supervisor"))) {
+        if (role == null) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             resp.setContentType("application/json;charset=UTF-8");
             resp.getWriter().print("{\"error\":\"forbidden\"}");

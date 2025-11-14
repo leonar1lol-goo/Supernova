@@ -38,7 +38,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/></svg>
             <span>Validación de Productos</span>
         </a>
-    <a class="nav-link" href="<%= ctx %>/admin/productos.jsp" data-slug="productos">
+    <a class="nav-link" href="<%= ctx %>/admin/productos.jsp" data-slug="productos" onclick="window.location.href=this.getAttribute('href'); return false;" onmousedown="window.location.href=this.getAttribute('href'); return false;" role="link">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z"/></svg>
             <span>Productos</span>
         </a>
@@ -66,5 +66,22 @@
                 }
             });
         }catch(e){}
+    })();
+</script>
+<script>
+    (function(){
+        try {
+            var links = document.querySelectorAll('.admin-sidebar .nav-link');
+            links.forEach(function(a){
+                var handler = function(e){
+                    try { e.preventDefault(); e.stopImmediatePropagation(); } catch(err){}
+                    var href = a.getAttribute('href');
+                    if (href) { window.location.assign(href); }
+                    return false;
+                };
+                a.addEventListener('click', handler, true);
+                a.addEventListener('mousedown', handler, true);
+            });
+        } catch(err){ console.error(err); }
     })();
 </script>

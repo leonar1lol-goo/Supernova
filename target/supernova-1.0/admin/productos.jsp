@@ -5,8 +5,9 @@
 <%
     jakarta.servlet.http.HttpSession _s = request.getSession(false);
     String _role = _s != null ? (String) _s.getAttribute("role") : null;
-    if (_role == null || !(_role.equalsIgnoreCase("admin") || _role.equalsIgnoreCase("supervisor"))) {
-        response.sendRedirect(ctx + "/admin/dashboard");
+    // Allow any authenticated role to view the products page. Redirect to login if no session/role.
+    if (_role == null) {
+        response.sendRedirect(ctx + "/Login.jsp?admin=required");
         return;
     }
 %>
@@ -38,7 +39,9 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
                         <h2 style="margin:0">Lista de productos</h2>
                         <div>
+                            <% if (_role != null && (_role.equalsIgnoreCase("admin") || _role.equalsIgnoreCase("supervisor"))) { %>
                             <button id="btnNewProduct" class="btn-primary" style="margin-left:8px">Nuevo Producto</button>
+                            <% } %>
                         </div>
                     </div>
 
