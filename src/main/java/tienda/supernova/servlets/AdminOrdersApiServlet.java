@@ -273,6 +273,16 @@ public class AdminOrdersApiServlet extends HttpServlet {
                     try (ResultSet keys = ps.getGeneratedKeys()){
                         if (keys.next()){
                             int id = keys.getInt(1);
+                            try {
+                                boolean detalleHasPrecio = false;
+                                try (PreparedStatement pcheck = con.prepareStatement("SELECT * FROM Detalle_Pedido LIMIT 1")){
+                                    try (ResultSet r = pcheck.executeQuery()){
+                                        ResultSetMetaData md = r.getMetaData();
+                                        for (int i=1;i<=md.getColumnCount();i++){ if ("precio_unitario".equalsIgnoreCase(md.getColumnLabel(i))){ detalleHasPrecio = true; break; } }
+                                    }
+                                } catch (SQLException ignore) { detalleHasPrecio = true; }
+                                updateOrderTotal(con, id, productIdCol, detalleHasPrecio);
+                            } catch (Exception _e) { }
                             resp.getWriter().write("{\"ok\":true,\"id\":"+id+"}");
                             return;
                         }
@@ -298,6 +308,7 @@ public class AdminOrdersApiServlet extends HttpServlet {
                 }
                 try {
                     con.setAutoCommit(false);
+                    boolean detalleHasPrecio = false;
                     String insertPedido = "INSERT INTO Pedido (id_cliente, estado, prioridad, fecha_entrega_estimada, direccion_envio, costo_envio, metodo_pago, notas) VALUES (?,?,?,?,?,?,?,?)";
                     try (PreparedStatement ps = con.prepareStatement(insertPedido, Statement.RETURN_GENERATED_KEYS)){
                         boolean costoNotNullable = false;
@@ -332,7 +343,6 @@ public class AdminOrdersApiServlet extends HttpServlet {
                         try (ResultSet keys = ps.getGeneratedKeys()){ if (keys.next()) orderId = keys.getInt(1); }
                         if (orderId <= 0) throw new SQLException("no id generated for pedido");
                         if (itemIds != null && itemIds.length > 0) {
-                            boolean detalleHasPrecio = false;
                             try (PreparedStatement pcheck = con.prepareStatement("SELECT * FROM Detalle_Pedido LIMIT 1")){
                                 try (ResultSet r = pcheck.executeQuery()){
                                     ResultSetMetaData md = r.getMetaData();
@@ -368,6 +378,11 @@ public class AdminOrdersApiServlet extends HttpServlet {
                                     else { pis.setInt(1, orderId); pis.setInt(2, pidInt); pis.setInt(3, qtyInt); pis.executeUpdate(); }
                                 }
                             }
+                        }
+
+                        try {
+                            updateOrderTotal(con, orderId, productIdCol, detalleHasPrecio);
+                        } catch (Exception _e) {
                         }
                         con.commit();
                         resp.getWriter().write("{\"ok\":true,\"id\":"+orderId+"}");
@@ -483,8 +498,13 @@ public class AdminOrdersApiServlet extends HttpServlet {
                             psUpd.setInt(1, cantidad); psUpd.setInt(2, idProducto); psUpd.executeUpdate();
                         }
                     }
+                    int newId = -1;
                     try (PreparedStatement ps = con.prepareStatement("INSERT INTO Detalle_Pedido (id_pedido, id_producto, cantidad_solicitada, precio_unitario) VALUES (?,?,?,?)", Statement.RETURN_GENERATED_KEYS)){
-                        ps.setInt(1, idPedido); ps.setInt(2, idProducto); ps.setInt(3, cantidad); ps.setBigDecimal(4, precio); ps.executeUpdate(); try (ResultSet k=ps.getGeneratedKeys()){ if(k.next()){ resp.getWriter().write("{\"ok\":true,\"id\":"+k.getInt(1)+"}"); return; } }
+                        ps.setInt(1, idPedido); ps.setInt(2, idProducto); ps.setInt(3, cantidad); ps.setBigDecimal(4, precio); ps.executeUpdate(); try (ResultSet k=ps.getGeneratedKeys()){ if(k.next()){ newId = k.getInt(1); } }
+                    }
+                    if (newId != -1) {
+                        try { updateOrderTotal(con, idPedido, productIdCol, true); } catch (Exception _e) {}
+                        resp.getWriter().write("{\"ok\":true,\"id\":"+newId+"}"); return;
                     }
                 } else {
                     if (stockCol != null) {
@@ -500,16 +520,33 @@ public class AdminOrdersApiServlet extends HttpServlet {
                             psUpd.setInt(1, cantidad); psUpd.setInt(2, idProducto); psUpd.executeUpdate();
                         }
                     }
+                    int newId2 = -1;
                     try (PreparedStatement ps = con.prepareStatement("INSERT INTO Detalle_Pedido (id_pedido, id_producto, cantidad_solicitada) VALUES (?,?,?)", Statement.RETURN_GENERATED_KEYS)){
-                        ps.setInt(1, idPedido); ps.setInt(2, idProducto); ps.setInt(3, cantidad); ps.executeUpdate(); try (ResultSet k=ps.getGeneratedKeys()){ if(k.next()){ resp.getWriter().write("{\"ok\":true,\"id\":"+k.getInt(1)+"}"); return; } }
+                        ps.setInt(1, idPedido); ps.setInt(2, idProducto); ps.setInt(3, cantidad); ps.executeUpdate(); try (ResultSet k=ps.getGeneratedKeys()){ if(k.next()){ newId2 = k.getInt(1); } }
+                    }
+                    if (newId2 != -1) {
+                        try { updateOrderTotal(con, idPedido, productIdCol, false); } catch (Exception _e) {}
+                        resp.getWriter().write("{\"ok\":true,\"id\":"+newId2+"}"); return;
                     }
                 }
                 resp.getWriter().write("{\"ok\":false}"); return;
             } else if ("removeItem".equalsIgnoreCase(action)) {
                 String idStr = req.getParameter("id_detalle"); if (idStr==null){ resp.getWriter().write("{\"ok\":false,\"error\":\"missing id_detalle\"}"); return; }
                 int id = Integer.parseInt(idStr);
+                int orderIdForTotal = -1;
+                try (PreparedStatement psel = con.prepareStatement("SELECT id_pedido FROM Detalle_Pedido WHERE id_detalle = ?")){
+                    psel.setInt(1, id);
+                    try (ResultSet rr = psel.executeQuery()){ if (rr.next()) orderIdForTotal = rr.getInt(1); }
+                } catch (Exception _e) {}
                 try (PreparedStatement ps = con.prepareStatement("DELETE FROM Detalle_Pedido WHERE id_detalle = ?")){
-                    ps.setInt(1, id); int d = ps.executeUpdate(); resp.getWriter().write("{\"ok\":true,\"deleted\":"+d+"}"); return;
+                    ps.setInt(1, id); int d = ps.executeUpdate();
+                    try {
+                        if (orderIdForTotal != -1) {
+                            boolean detHas = hasColumn(con, "Detalle_Pedido", "precio_unitario");
+                            try { updateOrderTotal(con, orderIdForTotal, productIdCol, detHas); } catch (Exception _e) {}
+                        }
+                    } catch (Exception _e) {}
+                    resp.getWriter().write("{\"ok\":true,\"deleted\":"+d+"}"); return;
                 }
             } else if ("updateItem".equalsIgnoreCase(action)) {
                 String idStr = req.getParameter("id_detalle"); if (idStr==null){ resp.getWriter().write("{\"ok\":false,\"error\":\"missing id_detalle\"}"); return; }
@@ -522,7 +559,19 @@ public class AdminOrdersApiServlet extends HttpServlet {
                 if (params.isEmpty()) { resp.getWriter().write("{\"ok\":false,\"error\":\"nothing to update\"}"); return; }
                 int last = sb.lastIndexOf(","); if (last!=-1) sb.deleteCharAt(last); sb.append(" WHERE id_detalle = ?");
                 try (PreparedStatement ps = con.prepareStatement(sb.toString())){
-                    for (int i=0;i<params.size();i++) ps.setObject(i+1, params.get(i)); ps.setInt(params.size()+1, id); int u = ps.executeUpdate(); resp.getWriter().write("{\"ok\":true,\"updated\":"+u+"}"); return;
+                    for (int i=0;i<params.size();i++) ps.setObject(i+1, params.get(i)); ps.setInt(params.size()+1, id); int u = ps.executeUpdate();
+                    try {
+                        int orderIdForTotal = -1;
+                        try (PreparedStatement psel = con.prepareStatement("SELECT id_pedido FROM Detalle_Pedido WHERE id_detalle = ?")){
+                            psel.setInt(1, id);
+                            try (ResultSet rr = psel.executeQuery()){ if (rr.next()) orderIdForTotal = rr.getInt(1); }
+                        } catch (Exception _e) {}
+                        if (orderIdForTotal != -1) {
+                            boolean detHas = hasColumn(con, "Detalle_Pedido", "precio_unitario");
+                            try { updateOrderTotal(con, orderIdForTotal, productIdCol, detHas); } catch (Exception _e) {}
+                        }
+                    } catch (Exception _e) {}
+                    resp.getWriter().write("{\"ok\":true,\"updated\":"+u+"}"); return;
                 }
             }
 
@@ -540,6 +589,56 @@ public class AdminOrdersApiServlet extends HttpServlet {
             }
         } catch (SQLException ex) {}
         return false;
+    }
+
+    private void updateOrderTotal(Connection con, int orderId, String productIdCol, boolean detalleHasPrecio) {
+        try {
+            String totalCol = null;
+            if (hasColumn(con, "Pedido", "total")) totalCol = "total";
+            else if (hasColumn(con, "Pedido", "monto_total")) totalCol = "monto_total";
+            else if (hasColumn(con, "Pedido", "monto")) totalCol = "monto";
+            if (totalCol == null) {
+                try (Statement st = con.createStatement()) {
+                    st.executeUpdate("ALTER TABLE Pedido ADD COLUMN total DECIMAL(12,2)");
+                    totalCol = "total";
+                } catch (SQLException ex) {
+                    return;
+                }
+            }
+
+            boolean prodHasPrecio = false;
+            try (PreparedStatement p = con.prepareStatement("SELECT * FROM Producto LIMIT 1")){
+                try (ResultSet r = p.executeQuery()){
+                    ResultSetMetaData md = r.getMetaData();
+                    for (int i=1;i<=md.getColumnCount();i++){
+                        String col = md.getColumnLabel(i);
+                        if (col != null && "precio".equalsIgnoreCase(col)) { prodHasPrecio = true; break; }
+                    }
+                }
+            } catch (SQLException ignore) { }
+
+            String sumExpr;
+            if (detalleHasPrecio) sumExpr = "COALESCE(SUM(dp.cantidad_solicitada * dp.precio_unitario),0)";
+            else if (prodHasPrecio) sumExpr = "COALESCE(SUM(dp.cantidad_solicitada * prod.precio),0)";
+            else sumExpr = "COALESCE(SUM(dp.cantidad_solicitada),0)";
+
+            String sqlSum = "SELECT " + sumExpr + " AS total FROM Detalle_Pedido dp LEFT JOIN Producto prod ON dp.id_producto = prod." + productIdCol + " WHERE dp.id_pedido = ?";
+            try (PreparedStatement ps = con.prepareStatement(sqlSum)){
+                ps.setInt(1, orderId);
+                try (ResultSet rs = ps.executeQuery()){
+                    if (rs.next()){
+                        BigDecimal total = rs.getBigDecimal("total");
+                        try (PreparedStatement pu = con.prepareStatement("UPDATE Pedido SET " + totalCol + " = ? WHERE id_pedido = ?")){
+                            if (total == null) pu.setBigDecimal(1, BigDecimal.ZERO); else pu.setBigDecimal(1, total);
+                            pu.setInt(2, orderId);
+                            pu.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            try { System.err.println("updateOrderTotal error: " + e.getMessage()); } catch (Exception _e) {}
+        }
     }
 
     private int getOrCreateClient(Connection con, String email, String nombre) throws SQLException {

@@ -1,126 +1,297 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    String ctx = request.getContextPath();
-%>
-<%
-    jakarta.servlet.http.HttpSession _s = request.getSession(false);
-    String _role = _s != null ? (String) _s.getAttribute("role") : null;
-    // Allow any authenticated user to view clientes page. Redirect to login if not authenticated.
-    if (_role == null) {
-        response.sendRedirect(ctx + "/Login.jsp?admin=required");
-        return;
-    }
-%>
-<!doctype html>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %> <% String ctx
+= request.getContextPath(); jakarta.servlet.http.HttpSession _s =
+request.getSession(false); String _role = _s != null ? (String)
+_s.getAttribute("role") : null; if (_role == null) { response.sendRedirect(ctx +
+"/Login.jsp?admin=required"); return; } %>
+<!DOCTYPE html>
 <html>
-<head>
+  <head>
     <meta charset="utf-8" />
     <title>Admin - Clientes</title>
     <link rel="stylesheet" href="<%= ctx %>/css/style.css" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-</head>
-<body>
-<jsp:include page="../header.jsp" />
-<div class="admin-layout">
-    <jsp:include page="../includes/admin-sidebar.jsp" />
+  </head>
+  <body>
+    <jsp:include page="../header.jsp" />
+    <div class="admin-layout">
+      <jsp:include page="../includes/admin-sidebar.jsp" />
 
-    <main class="admin-main">
+      <main class="admin-main">
         <div class="admin-container">
-            <div class="admin-grid">
-                <div class="admin-form users-panel">
-                    <h2>Clientes</h2>
-                    <p class="muted">Listado de clientes registrado en el sistema.</p>
-                    <div style="margin-top:12px">
-                        <input id="clientSearch" class="search-input" placeholder="Buscar clientes (nombre, email, teléfono)" />
-                    </div>
-                </div>
-
-                <div class="admin-table table-scroll">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-                        <h2 style="margin:0">Lista de clientes</h2>
-                        <div>
-                            <button id="btnNewClient" class="btn-primary" style="margin-left:8px">Nuevo Cliente</button>
-                        </div>
-                    </div>
-
-                    <table id="clientsTable" class="admin-table" style="margin-top:12px">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>DNI / RUC</th>
-                                <th>Dirección</th>
-                                <th>Email</th>
-                                <th>Teléfono</th>
-                                <th class="text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
+          <div class="admin-grid">
+            <div class="admin-form users-panel">
+              <h2>Clientes</h2>
+              <p class="muted">Listado de clientes registrado en el sistema.</p>
+              <div style="margin-top: 12px">
+                <input
+                  id="clientSearch"
+                  class="search-input"
+                  placeholder="Buscar clientes (nombre, email, teléfono)"
+                />
+              </div>
             </div>
-        </div>
-    </main>
 
-    <script>window.APP_CTX = '<%= ctx %>';</script>
-    <script src="<%= ctx %>/js/admin-clientes.js"></script>
-    <div id="createClientModal" class="modal-backdrop" style="display:none;align-items:center;justify-content:center;z-index:1200">
-        <div class="modal" role="dialog" aria-modal="true" style="width:520px;max-width:calc(100% - 32px);padding:22px;border-radius:10px">
-            <h3>Crear nuevo cliente</h3>
-            <div class="register-container">
-                <div class="form-row">
-                    <label for="ccNombre">Nombre</label>
-                    <input id="ccNombre" type="text" />
+            <div class="admin-table table-scroll">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 12px;
+                "
+              >
+                <h2 style="margin: 0">Lista de clientes</h2>
+                <div>
+                  <button
+                    id="btnNewClient"
+                    type="button"
+                    class="btn-primary"
+                    style="margin-left: 8px"
+                  >
+                    Nuevo Cliente
+                  </button>
                 </div>
-                <div class="form-row">
-                    <label for="ccDireccion">Dirección</label>
-                    <input id="ccDireccion" type="text" />
-                </div>
-                <div class="form-row">
-                    <label for="ccTelefono">Teléfono</label>
-                    <input id="ccTelefono" type="tel" inputmode="numeric" pattern="\\d{1,9}" maxlength="9" />
-                </div>
-                <div class="form-row">
-                    <label for="ccDni">DNI / RUC</label>
-                    <input id="ccDni" type="text" inputmode="numeric" pattern="\\d{1,11}" maxlength="11" />
-                </div>
-                <div class="form-row">
-                    <label for="ccEmail">Email</label>
-                    <input id="ccEmail" type="email" />
-                </div>
-                <div class="actions" style="margin-top:14px">
-                    <button id="ccCancel" class="btn-ghost">Cancelar</button>
-                    <button id="ccCreate" class="btn-save" style="background:#f97316;border:0;color:#fff;padding:10px 14px;border-radius:8px">Crear</button>
-                </div>
+              </div>
+
+              <table
+                id="clientsTable"
+                class="admin-table"
+                style="margin-top: 12px"
+              >
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>DNI / RUC</th>
+                    <th>Dirección</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th class="text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
+          </div>
         </div>
+      </main>
+
+      <script>
+        window.APP_CTX = "<%= ctx %>";
+      </script>
+      <script src="<%= ctx %>/js/admin-clientes.js"></script>
+      <script>
+        (function () {
+          function mostrar(msg) {
+            try {
+              if (window.globalShowToast) window.globalShowToast(msg, "error");
+            } catch (e) {}
+            try {
+              alert(msg);
+            } catch (e) {}
+          }
+          window.__snValidateCreate = function (e) {
+            try {
+              e && e.preventDefault && e.preventDefault();
+            } catch (_) {}
+            var nombre = (
+              document.getElementById("ccNombre") || { value: "" }
+            ).value.trim();
+            var direccion = (
+              document.getElementById("ccDireccion") || { value: "" }
+            ).value.trim();
+            var telefono = (
+              document.getElementById("ccTelefono") || { value: "" }
+            ).value
+              .replace(/\D/g, "")
+              .slice(0, 9);
+            var dni = (document.getElementById("ccDni") || { value: "" }).value
+              .replace(/\D/g, "")
+              .slice(0, 11);
+            var email = (
+              document.getElementById("ccEmail") || { value: "" }
+            ).value.trim();
+            var faltan = [];
+            if (!nombre) faltan.push("Nombre");
+            if (!direccion) faltan.push("Dirección");
+            if (!telefono) faltan.push("Teléfono");
+            if (!dni) faltan.push("DNI / RUC");
+            if (!email) faltan.push("Email");
+            if (faltan.length) {
+              var msg =
+                faltan.length === 1
+                  ? "Falta el campo: " + faltan[0]
+                  : "Faltan los campos: " + faltan.join(", ");
+              mostrar(msg);
+              var first = faltan[0];
+              var map = {
+                Nombre: "ccNombre",
+                Dirección: "ccDireccion",
+                Teléfono: "ccTelefono",
+                "DNI / RUC": "ccDni",
+                Email: "ccEmail",
+              };
+              var el = document.getElementById(map[first]);
+              if (el && el.focus) el.focus();
+              return false;
+            }
+            return true;
+          };
+          var btn = document.getElementById("ccCreate");
+          if (btn)
+            btn.addEventListener(
+              "click",
+              function (e) {
+                window.__snValidateCreate(e);
+              },
+              true
+            );
+          document.addEventListener(
+            "click",
+            function (evt) {
+              var b =
+                evt.target &&
+                evt.target.closest &&
+                evt.target.closest("#ccCreate");
+              if (!b) return;
+              window.__snValidateCreate(evt);
+            },
+            true
+          );
+        })();
+      </script>
+      <div
+        id="createClientModal"
+        class="modal-backdrop"
+        style="
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 1200;
+        "
+      >
+        <div
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          style="
+            width: 520px;
+            max-width: calc(100% - 32px);
+            padding: 22px;
+            border-radius: 10px;
+          "
+        >
+          <h3>Crear nuevo cliente</h3>
+          <div class="register-container">
+            <div class="form-row">
+              <label for="ccNombre">Nombre</label>
+              <input id="ccNombre" type="text" />
+            </div>
+            <div class="form-row">
+              <label for="ccDireccion">Dirección</label>
+              <input id="ccDireccion" type="text" />
+            </div>
+            <div class="form-row">
+              <label for="ccTelefono">Teléfono</label>
+              <input
+                id="ccTelefono"
+                type="tel"
+                inputmode="numeric"
+                pattern="\\d{9}"
+                maxlength="9"
+              />
+            </div>
+            <div class="form-row">
+              <label for="ccDni">DNI / RUC</label>
+              <input
+                id="ccDni"
+                type="text"
+                inputmode="numeric"
+                pattern="\\d{8,11}"
+                maxlength="11"
+              />
+            </div>
+            <div class="form-row">
+              <label for="ccEmail">Email</label>
+              <input id="ccEmail" type="email" />
+            </div>
+            <div class="actions" style="margin-top: 14px">
+              <button id="ccCancel" type="button" class="btn-ghost">
+                Cancelar
+              </button>
+              <button
+                id="ccCreate"
+                type="button"
+                class="btn-save"
+                style="
+                  background: #f97316;
+                  border: 0;
+                  color: #fff;
+                  padding: 10px 14px;
+                  border-radius: 8px;
+                "
+                onclick="(function(){var n=(document.getElementById('ccNombre')||{value:''}).value.trim();var d=(document.getElementById('ccDireccion')||{value:''}).value.trim();var t=(document.getElementById('ccTelefono')||{value:''}).value.replace(/\D/g,'').slice(0,9);var dni=(document.getElementById('ccDni')||{value:''}).value.replace(/\D/g,'').slice(0,11);var e=(document.getElementById('ccEmail')||{value:''}).value.trim();var falt=[];if(!n)falt.push('Nombre');if(!d)falt.push('Dirección');if(!t)falt.push('Teléfono');if(!dni)falt.push('DNI / RUC');if(!e)falt.push('Email');if(falt.length){try{alert(falt.length===1?('Falta el campo: '+falt[0]):('Faltan los campos: '+falt.join(', ')));}catch(ex){}try{if(window.globalShowToast)window.globalShowToast(falt.length===1?('Falta el campo: '+falt[0]):('Faltan los campos: '+falt.join(', ')),'error')}catch(ex){}var map={'Nombre':'ccNombre','Dirección':'ccDireccion','Teléfono':'ccTelefono','DNI / RUC':'ccDni','Email':'ccEmail'};var el=document.getElementById(map[falt[0]]);if(el&&el.focus)el.focus();return false;}return true; })();"
+              >
+                Crear
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        id="editClientModal"
+        class="modal-backdrop"
+        style="
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 1200;
+        "
+      >
+        <div
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          style="
+            width: 520px;
+            max-width: calc(100% - 32px);
+            padding: 22px;
+            border-radius: 10px;
+          "
+        >
+          <h3>Editar cliente</h3>
+          <div class="register-container">
+            <input id="ecId" type="hidden" />
+
+            <div class="form-row">
+              <label for="ecTelefono">Teléfono</label>
+              <input
+                id="ecTelefono"
+                type="tel"
+                inputmode="numeric"
+                pattern="\\d{9}"
+                maxlength="9"
+              />
+            </div>
+            <div class="form-row">
+              <label for="ecDireccion">Dirección</label>
+              <input id="ecDireccion" type="text" />
+            </div>
+            <div class="form-row">
+              <label for="ecEmail">Email</label>
+              <input id="ecEmail" type="email" />
+            </div>
+            <div class="actions" style="margin-top: 14px">
+              <button id="ecCancel" type="button" class="btn-ghost">
+                Cancelar
+              </button>
+              <button id="ecSave" type="button" class="btn-save">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="editClientModal" class="modal-backdrop" style="display:none;align-items:center;justify-content:center;z-index:1200">
-        <div class="modal" role="dialog" aria-modal="true" style="width:520px;max-width:calc(100% - 32px);padding:22px;border-radius:10px">
-            <h3>Editar cliente</h3>
-            <div class="register-container">
-                <input id="ecId" type="hidden" />
-                
-                <div class="form-row">
-                    <label for="ecTelefono">Teléfono</label>
-                    <input id="ecTelefono" type="tel" inputmode="numeric" pattern="\\d{1,9}" maxlength="9" />
-                </div>
-                <div class="form-row">
-                    <label for="ecDireccion">Dirección</label>
-                    <input id="ecDireccion" type="text" />
-                </div>
-                <div class="form-row">
-                    <label for="ecEmail">Email</label>
-                    <input id="ecEmail" type="email" />
-                </div>
-                <div class="actions" style="margin-top:14px">
-                    <button id="ecCancel" class="btn-ghost">Cancelar</button>
-                    <button id="ecSave" class="btn-save">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</body>
+  </body>
 </html>
