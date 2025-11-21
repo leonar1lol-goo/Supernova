@@ -40,6 +40,7 @@ public class AdminFilter implements Filter {
                     || uri.startsWith(ctx + "/admin/api/clientes")
                     || uri.startsWith(ctx + "/admin/api/clients")
                     || uri.startsWith(ctx + "/admin/api/orders")
+                    || uri.startsWith(ctx + "/admin/report")
                     || uri.startsWith(ctx + "/admin/api/productos")
                     || uri.startsWith(ctx + "/admin/api/products")
                     || uri.startsWith(ctx + "/admin/account")
