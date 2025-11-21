@@ -58,8 +58,29 @@ public class AdminStockReportServlet extends HttpServlet {
             boolean hasPrecio = false;
             try { hasPrecio = hasColumn(con, "Producto", "precio"); } catch (Exception _ex){}
 
-            String sql = "SELECT " + productIdCol + " as pid, nombre" + (stockCol != null ? (", " + stockCol + " as stock") : "") + (hasPrecio ? ", precio" : "") + " FROM Producto ORDER BY nombre";
+            boolean hasCodigo = false, hasCategoria = false, hasSku = false, hasDescripcion = false, hasMarca = false, hasUnidad = false;
+            try {
+                hasCodigo = hasColumn(con, "Producto", "codigo") || hasColumn(con, "Producto", "codigo_barra") || hasColumn(con, "Producto", "codigo_producto");
+            } catch (Exception _ex){}
+            try { hasCategoria = hasColumn(con, "Producto", "categoria"); } catch (Exception _ex){}
+            try { hasSku = hasColumn(con, "Producto", "sku") || hasColumn(con, "Producto", "codigo_sku"); } catch (Exception _ex){}
+            try { hasDescripcion = hasColumn(con, "Producto", "descripcion") || hasColumn(con, "Producto", "descripcion_corta"); } catch (Exception _ex){}
+            try { hasMarca = hasColumn(con, "Producto", "marca"); } catch (Exception _ex){}
+            try { hasUnidad = hasColumn(con, "Producto", "unidad_medida") || hasColumn(con, "Producto", "unidad"); } catch (Exception _ex){}
 
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT ");
+            sb.append(productIdCol).append(" as pid, nombre");
+            if (hasCodigo) sb.append(", codigo as codigo");
+            if (hasCategoria) sb.append(", categoria as categoria");
+            if (stockCol != null) sb.append(", ").append(stockCol).append(" as stock");
+            if (hasSku) sb.append(", sku as sku");
+            if (hasDescripcion) sb.append(", descripcion as descripcion");
+            if (hasMarca) sb.append(", marca as marca");
+            if (hasUnidad) sb.append(", unidad_medida as unidad_medida");
+            if (hasPrecio) sb.append(", precio");
+            sb.append(" FROM Producto ORDER BY nombre");
+            String sql = sb.toString();
             System.out.println("[AdminStockReportServlet] SQL: " + sql);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -103,20 +124,34 @@ public class AdminStockReportServlet extends HttpServlet {
 
             doc.add(new Paragraph(" "));
 
-            int cols = 2 + (stockCol != null ? 1 : 0) + (hasPrecio ? 1 : 0);
-            PdfPTable table = new PdfPTable(cols);
+            java.util.List<String> headers = new java.util.ArrayList<>();
+            headers.add("ID");
+            headers.add("Nombre");
+            if (hasCodigo) headers.add("Código");
+            if (hasCategoria) headers.add("Categoría");
+            if (stockCol != null) headers.add("Stock");
+            if (hasSku) headers.add("SKU");
+            if (hasDescripcion) headers.add("Descripción");
+            if (hasMarca) headers.add("Marca");
+            if (hasUnidad) headers.add("Unidad de medida");
+            if (hasPrecio) headers.add("Precio");
+
+            PdfPTable table = new PdfPTable(headers.size());
             table.setWidthPercentage(100);
-            float[] widths;
-            if (cols == 4) widths = new float[]{0.6f, 5f, 1.2f, 1.6f};
-            else if (cols == 3) widths = new float[]{0.6f, 6f, 1.4f};
-            else widths = new float[]{0.6f, 7f};
+            float[] widths = new float[headers.size()];
+            for (int i = 0; i < headers.size(); i++) {
+                String h = headers.get(i);
+                if (h.equals("ID")) widths[i] = 0.6f;
+                else if (h.equals("Nombre")) widths[i] = 4.5f;
+                else if (h.equals("Descripción")) widths[i] = 3.0f;
+                else if (h.equals("Precio")) widths[i] = 1.2f;
+                else widths[i] = 1.2f;
+            }
             try { table.setWidths(widths); } catch (Exception _e) {}
 
-            PdfPCell ch1 = new PdfPCell(new Phrase("#", labelFont)); ch1.setGrayFill(0.9f); ch1.setPadding(4);
-            PdfPCell ch2 = new PdfPCell(new Phrase("Producto", labelFont)); ch2.setGrayFill(0.9f); ch2.setPadding(4);
-            table.addCell(ch1); table.addCell(ch2);
-            if (stockCol != null) { PdfPCell ch3 = new PdfPCell(new Phrase("Stock", labelFont)); ch3.setGrayFill(0.9f); ch3.setPadding(4); table.addCell(ch3); }
-            if (hasPrecio) { PdfPCell ch4 = new PdfPCell(new Phrase("Precio", labelFont)); ch4.setGrayFill(0.9f); ch4.setPadding(4); table.addCell(ch4); }
+            for (String hh : headers) {
+                PdfPCell ch = new PdfPCell(new Phrase(hh, labelFont)); ch.setGrayFill(0.9f); ch.setPadding(4); table.addCell(ch);
+            }
 
             long totalUnits = 0L;
             java.math.BigDecimal totalValue = BigDecimal.ZERO;
@@ -129,27 +164,40 @@ public class AdminStockReportServlet extends HttpServlet {
 
             try (PreparedStatement ps = con.prepareStatement(sql)){
                 try (ResultSet rs = ps.executeQuery()){
-                    int idx = 1; boolean alt = false;
+                    boolean alt = false;
                     while (rs.next()){
                         String nombre = rs.getString("nombre");
-                        PdfPCell c1 = new PdfPCell(new Phrase(String.valueOf(idx++), normalFont)); c1.setPadding(4);
-                        PdfPCell c2 = new PdfPCell(new Phrase(nombre, normalFont)); c2.setPadding(4);
-                        if (alt) { c1.setGrayFill(0.98f); c2.setGrayFill(0.98f); }
-                        table.addCell(c1); table.addCell(c2);
-
                         Long stockVal = null;
                         if (stockCol != null) {
                             Object obj = rs.getObject("stock");
                             if (obj != null) {
                                 try { stockVal = ((Number)obj).longValue(); } catch (Exception _e) { try { stockVal = Long.parseLong(obj.toString()); } catch (Exception __e) { stockVal = null; } }
                             }
-                            PdfPCell c3 = new PdfPCell(new Phrase(String.valueOf(stockVal!=null?stockVal:""), normalFont)); c3.setPadding(4); if (alt) c3.setGrayFill(0.98f); table.addCell(c3);
                         }
-
                         java.math.BigDecimal precioVal = null;
                         if (hasPrecio) {
                             try { precioVal = rs.getBigDecimal("precio"); } catch (Exception _e) { precioVal = null; }
-                            PdfPCell c4 = new PdfPCell(new Phrase(precioVal!=null?"S/."+precioVal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString():"", normalFont)); c4.setPadding(4); if (alt) c4.setGrayFill(0.98f); table.addCell(c4);
+                        }
+
+                        for (String hh : headers) {
+                            String key = hh;
+                            String text = "";
+                            try {
+                                switch (key) {
+                                    case "ID": text = String.valueOf(rs.getObject("pid")); break;
+                                    case "Nombre": text = nombre; break;
+                                    case "Código": text = rs.getObject("codigo")!=null?rs.getObject("codigo").toString():""; break;
+                                    case "Categoría": text = rs.getObject("categoria")!=null?rs.getObject("categoria").toString():""; break;
+                                    case "Stock": text = stockVal!=null?String.valueOf(stockVal):""; break;
+                                    case "SKU": text = rs.getObject("sku")!=null?rs.getObject("sku").toString():""; break;
+                                    case "Descripción": text = rs.getObject("descripcion")!=null?rs.getObject("descripcion").toString():""; break;
+                                    case "Marca": text = rs.getObject("marca")!=null?rs.getObject("marca").toString():""; break;
+                                    case "Unidad de medida": text = rs.getObject("unidad_medida")!=null?rs.getObject("unidad_medida").toString():""; break;
+                                    case "Precio": text = precioVal!=null?"S/."+precioVal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString():""; break;
+                                    default: text = "";
+                                }
+                            } catch (Exception _e) { text = ""; }
+                            PdfPCell cell = new PdfPCell(new Phrase(text, normalFont)); cell.setPadding(4); if (alt) cell.setGrayFill(0.98f); table.addCell(cell);
                         }
 
                         if (stockVal != null) {
@@ -160,7 +208,6 @@ public class AdminStockReportServlet extends HttpServlet {
                             if (precioVal != null) {
                                 try { totalValue = totalValue.add(precioVal.multiply(new BigDecimal(stockVal))); } catch (Exception _e) {}
                             }
-                        } else {
                         }
 
                         if (precioVal != null) {
