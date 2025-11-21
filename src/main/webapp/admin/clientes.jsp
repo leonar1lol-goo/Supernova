@@ -66,6 +66,7 @@ _s.getAttribute("role") : null; if (_role == null) { response.sendRedirect(ctx +
                     <th>Dirección</th>
                     <th>Email</th>
                     <th>Teléfono</th>
+                    <th>Activo</th>
                     <th class="text-center">Acciones</th>
                   </tr>
                 </thead>

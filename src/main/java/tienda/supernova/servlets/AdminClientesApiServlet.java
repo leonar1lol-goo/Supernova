@@ -59,14 +59,18 @@ public class AdminClientesApiServlet extends HttpServlet {
                         try { telefono = rs.getString("telefono"); } catch (Exception ext) { try { telefono = rs.getString("telefono_cliente"); } catch (Exception ext2) { try { telefono = rs.getString("tel"); } catch (Exception ext3) { telefono = null; } } }
                         String dni = null;
                         try { dni = rs.getString("dni"); } catch (Exception exd1) { try { dni = rs.getString("ruc"); } catch (Exception exd2) { try { dni = rs.getString("dni_ruc"); } catch (Exception exd3) { try { dni = rs.getString("documento"); } catch (Exception exd4) { dni = null; } } } }
-                        sb.append('{');
-                        sb.append("\"id\":").append(id).append(',');
-                        sb.append("\"nombre\":\"").append(escape(nombre)).append("\",");
-                        sb.append("\"dni\":\"").append(escape(dni)).append("\",");
-                        sb.append("\"direccion\":\"").append(escape(direccion)).append("\",");
-                        sb.append("\"email\":\"").append(escape(email)).append("\",");
-                        sb.append("\"telefono\":\"").append(escape(telefono)).append("\"");
-                        sb.append('}');
+                            int activo = 1; 
+                            try { activo = rs.getInt("activo"); } catch (Exception _ea) { try { activo = rs.getInt("activo_cliente"); } catch (Exception _eb) { try { activo = rs.getInt("enabled"); } catch (Exception _ec) { try { activo = rs.getInt("is_active"); } catch (Exception _ed) { activo = 1; } } } }
+
+                            sb.append('{');
+                            sb.append("\"id\":").append(id).append(',');
+                            sb.append("\"nombre\":\"").append(escape(nombre)).append("\",");
+                            sb.append("\"dni\":\"").append(escape(dni)).append("\",");
+                            sb.append("\"direccion\":\"").append(escape(direccion)).append("\",");
+                            sb.append("\"email\":\"").append(escape(email)).append("\",");
+                            sb.append("\"telefono\":\"").append(escape(telefono)).append("\",");
+                            sb.append("\"activo\":").append(activo);
+                            sb.append('}');
                     }
                     break;
                 } catch (SQLException ex) {
@@ -117,6 +121,74 @@ public class AdminClientesApiServlet extends HttpServlet {
         }
 
         try (Connection conn = DBConnection.getConnection()) {
+            if ("toggle".equalsIgnoreCase(action) || "toggle-active".equalsIgnoreCase(action) || "set-active".equalsIgnoreCase(action) || "setactivo".equalsIgnoreCase(action)) {
+                String id = req.getParameter("id");
+                String activoParam = req.getParameter("activo"); 
+                if (id == null) {
+                    resp.getWriter().print("{\"ok\":false,\"error\":\"no id\"}");
+                    return;
+                }
+                String[] tables = new String[]{"cliente","Cliente","clientes","Clientes"};
+                String[] idCols = new String[]{"id_cliente","id","id_client","idcliente"};
+                boolean updated = false;
+                for (String t : tables) {
+                    if (updated) break;
+                    for (String idc : idCols) {
+                        if (updated) break;
+                        try {
+                            Integer cur = null;
+                            try (PreparedStatement ps = conn.prepareStatement("SELECT activo FROM " + t + " WHERE " + idc + " = ?")) {
+                                ps.setString(1, id);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) cur = rs.getInt("activo");
+                                }
+                            } catch (SQLException selEx) {
+                                continue;
+                            }
+
+                            Integer newVal = null;
+                            if (activoParam != null) {
+                                newVal = "1".equals(activoParam) ? 1 : 0;
+                            } else if (cur != null) {
+                                newVal = (cur == 1) ? 0 : 1;
+                            } else {
+                                continue;
+                            }
+
+                            try (PreparedStatement psu = conn.prepareStatement("UPDATE " + t + " SET activo = ?, fecha_baja = ? WHERE " + idc + " = ?")) {
+                                psu.setInt(1, newVal);
+                                if (newVal == 0) psu.setTimestamp(2, new java.sql.Timestamp(System.currentTimeMillis())); else psu.setTimestamp(2, null);
+                                psu.setString(3, id);
+                                int aff = psu.executeUpdate();
+                                if (aff > 0) {
+                                    resp.getWriter().print("{\"ok\":true,\"id\":"+id+",\"activo\":"+newVal+"}");
+                                    updated = true;
+                                    break;
+                                }
+                            } catch (SQLException upEx) {
+                                try (PreparedStatement psu2 = conn.prepareStatement("UPDATE " + t + " SET activo = ? WHERE " + idc + " = ?")) {
+                                    psu2.setInt(1, newVal);
+                                    psu2.setString(2, id);
+                                    int aff2 = psu2.executeUpdate();
+                                    if (aff2 > 0) {
+                                        resp.getWriter().print("{\"ok\":true,\"id\":"+id+",\"activo\":"+newVal+"}");
+                                        updated = true;
+                                        break;
+                                    }
+                                } catch (SQLException exx) {
+                                    continue;
+                                }
+                            }
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }
+                }
+                if (updated) return;
+                resp.getWriter().print("{\"ok\":false,\"error\":\"not_found_or_no_column\"}");
+                return;
+            }
+
             if ("create".equalsIgnoreCase(action)) {
                 String nombre = req.getParameter("nombre");
                 String direccion = req.getParameter("direccion");

@@ -44,6 +44,13 @@
               >
                 + Nuevo Pedido
               </button>
+              <button
+                id="btnDateReport"
+                class="btn-ghost"
+                style="white-space: nowrap"
+              >
+                Reporte por fechas
+              </button>
             </div>
             <div class="filter-group">
               <button class="filter-btn active" data-state="all">Todos</button>
@@ -436,6 +443,30 @@
             </div>
           </div>
 
+          <div id="dateReportModal" class="modal-backdrop" aria-hidden="true">
+            <div
+              class="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="dateReportTitle"
+              style="max-width: 420px"
+            >
+              <h3 id="dateReportTitle">Generar reporte por fechas</h3>
+              <div class="form-row">
+                <label for="reportFrom">Desde (fecha):</label>
+                <input id="reportFrom" type="date" />
+              </div>
+              <div class="form-row">
+                <label for="reportTo">Hasta (fecha):</label>
+                <input id="reportTo" type="date" />
+              </div>
+              <div class="actions" style="justify-content: flex-end">
+                <button id="drCancel" class="btn-ghost">Cancelar</button>
+                <button id="drGenerate" class="btn-save">Generar PDF</button>
+              </div>
+            </div>
+          </div>
+
           <div
             id="toastContainer"
             class="toast-container"
@@ -466,6 +497,45 @@
         window.APP_CTX = "<%= ctx %>";
       </script>
       <script>
+        (function () {
+          var btn = document.getElementById("btnDateReport");
+          var modal = document.getElementById("dateReportModal");
+          var drCancel = document.getElementById("drCancel");
+          var drGenerate = document.getElementById("drGenerate");
+          if (btn && modal) {
+            btn.addEventListener("click", function () {
+              modal.classList.add("modal-show");
+              modal.setAttribute("aria-hidden", "false");
+            });
+          }
+          if (drCancel) {
+            drCancel.addEventListener("click", function (ev) {
+              ev.preventDefault();
+              modal.classList.remove("modal-show");
+              modal.setAttribute("aria-hidden", "true");
+            });
+          }
+          if (drGenerate) {
+            drGenerate.addEventListener("click", function (ev) {
+              ev.preventDefault();
+              var from = document.getElementById("reportFrom").value;
+              var to = document.getElementById("reportTo").value;
+              if (!from || !to) {
+                showToast("Seleccione ambas fechas", "error");
+                return;
+              }
+              var url =
+                (window.APP_CTX || "") +
+                "/admin/report/orders-range?from=" +
+                encodeURIComponent(from) +
+                "&to=" +
+                encodeURIComponent(to);
+              window.open(url, "_blank");
+              modal.classList.remove("modal-show");
+              modal.setAttribute("aria-hidden", "true");
+            });
+          }
+        })();
         function showToast(msg, kind) {
           try {
             var container = document.getElementById("toastContainer");

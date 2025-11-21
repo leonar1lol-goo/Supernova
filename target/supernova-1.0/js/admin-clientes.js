@@ -35,6 +35,17 @@
       '<td data-label="Teléfono">' +
       escapeHtml(c.telefono || "") +
       "</td>" +
+      '<td data-label="Activo" class="text-center">' +
+      '<button type="button" class="action-btn btn-toggle small-btn ' +
+      (c.activo == 1 ? "btn-success" : "btn-danger") +
+      '" data-id="' +
+      (c.id || "") +
+      '" data-activo="' +
+      (c.activo == 1 ? "1" : "0") +
+      '">' +
+      (c.activo == 1 ? "Activo" : "Inactivo") +
+      "</button>" +
+      "</td>" +
       '<td class="text-center" data-label="Acciones">' +
       '<div class="action-forms">' +
       '<button type="button" class="action-btn btn-edit small-btn" data-id="' +
@@ -62,14 +73,14 @@
         if (!Array.isArray(json)) {
           var tr = document.createElement("tr");
           tr.innerHTML =
-            '<td colspan="6" style="text-align:center;color:#666;padding:20px">(Respuesta inesperada del servidor)</td>';
+            '<td colspan="7" style="text-align:center;color:#666;padding:20px">(Respuesta inesperada del servidor)</td>';
           tbody.appendChild(tr);
           return;
         }
         if (!json.length) {
           var tr = document.createElement("tr");
           tr.innerHTML =
-            '<td colspan="6" style="text-align:center;color:#666;padding:20px">(No hay clientes cargados)</td>';
+            '<td colspan="7" style="text-align:center;color:#666;padding:20px">(No hay clientes cargados)</td>';
           tbody.appendChild(tr);
         } else {
           json.forEach(function (c) {
@@ -81,7 +92,7 @@
         console.error("clientes load", err);
         var tr = document.createElement("tr");
         tr.innerHTML =
-          '<td colspan="6" style="text-align:center;color:#c02828;padding:20px">Error cargando clientes</td>';
+          '<td colspan="7" style="text-align:center;color:#c02828;padding:20px">Error cargando clientes</td>';
         tbody.appendChild(tr);
       });
   }
@@ -95,8 +106,8 @@
           var name = r.children[1]
             ? r.children[1].textContent.toLowerCase()
             : "";
-          var email = r.children[3]
-            ? r.children[3].textContent.toLowerCase()
+          var email = r.children[4]
+            ? r.children[4].textContent.toLowerCase()
             : "";
           r.style.display = name.includes(q) || email.includes(q) ? "" : "none";
         });
@@ -397,10 +408,13 @@
           });
       });
     document.body.addEventListener("click", function (e) {
-      var btn = e.target.closest("button[data-action]");
+      var btn = e.target.closest("button");
       if (!btn) return;
       var action = btn.getAttribute("data-action");
       var id = btn.getAttribute("data-id");
+      if (!action && btn.classList && btn.classList.contains("btn-toggle")) {
+        action = "toggle";
+      }
       if (action === "delete") {
         openGlobalConfirm("Eliminar cliente?", function () {
           var p = new URLSearchParams();
@@ -557,6 +571,46 @@
               ecSave.textContent = "Guardar";
             });
         };
+      } else if (action === "toggle") {
+        var cur = btn.getAttribute("data-activo");
+        var newActivo = cur === "1" ? "0" : "1";
+        var p = new URLSearchParams();
+        p.append("action", "toggle");
+        p.append("id", id);
+        p.append("activo", newActivo);
+        fetch((window.APP_CTX || "") + "/admin/api/clientes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          },
+          body: p.toString(),
+        })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (res) {
+            if (res && res.ok) {
+              var act = String(res.activo);
+              btn.setAttribute("data-activo", act);
+              btn.textContent = act === "1" ? "Activo" : "Inactivo";
+              if (act === "1") {
+                btn.classList.remove("btn-danger");
+                btn.classList.add("btn-success");
+              } else {
+                btn.classList.remove("btn-success");
+                btn.classList.add("btn-danger");
+              }
+              globalShowToast &&
+                globalShowToast("Estado actualizado", "success");
+            } else {
+              globalShowToast &&
+                globalShowToast("Error actualizando estado", "error");
+            }
+          })
+          .catch(function (err) {
+            console.error("toggle client", err);
+            globalShowToast && globalShowToast("Error de red", "error");
+          });
       }
     });
   });
