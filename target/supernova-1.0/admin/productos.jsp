@@ -1,9 +1,15 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %> <% String ctx
-= request.getContextPath(); %> <% jakarta.servlet.http.HttpSession _s =
-request.getSession(false); String _role = _s != null ? (String)
-_s.getAttribute("role") : null; // Allow any authenticated role to view the
-products page. Redirect to login if no session/role. if (_role == null) {
-response.sendRedirect(ctx + "/Login.jsp?admin=required"); return; } %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+  String ctx = request.getContextPath();
+  jakarta.servlet.http.HttpSession _s = request.getSession(false);
+  String _role = _s != null ? (String) _s.getAttribute("role") : null;
+  /* Allow any authenticated role to view the products page.
+     Redirect to login if no session/role. */
+  if (_role == null) {
+    response.sendRedirect(ctx + "/Login.jsp?admin=required");
+    return;
+  }
+%>
 <!DOCTYPE html>
 <html>
   <head>
@@ -22,17 +28,7 @@ response.sendRedirect(ctx + "/Login.jsp?admin=required"); return; } %>
           <div class="admin-grid">
             <div class="admin-form users-panel">
               <h2>Productos</h2>
-              <p class="muted">
-                Listado de productos registrados en el sistema.
-              </p>
-              <div style="margin-top: 12px">
-                <input
-                  id="productSearch"
-                  class="search-input"
-                  placeholder="Buscar productos (nombre, categoría, código)"
-                />
-              </div>
-            </div>
+              <p class="muted">Listado de productos registrados en el sistema.</p>
 
             <div class="admin-table table-scroll">
               <div
