@@ -18,6 +18,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.time.ZoneId;
+import java.time.LocalDate;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -186,6 +190,8 @@ public class AdminOrderReportServlet extends HttpServlet {
             int totalItems = 0;
             int distinctItems = 0;
             BigDecimal highestUnitPrice = BigDecimal.ZERO;
+            BigDecimal lowestUnitPrice = null;
+            String productMostQtyName = null; int productMostQty = -1;
             HashSet<Integer> seenItemIds = new HashSet<>();
 
             try (PreparedStatement pis = con.prepareStatement(sqlItems)){
@@ -221,6 +227,8 @@ public class AdminOrderReportServlet extends HttpServlet {
                         totalItems += qty;
                         subtotal = subtotal.add(unitPrice.multiply(new BigDecimal(qty)));
                         if (unitPrice.compareTo(highestUnitPrice) > 0) highestUnitPrice = unitPrice;
+                        if (lowestUnitPrice == null || unitPrice.compareTo(lowestUnitPrice) < 0) lowestUnitPrice = unitPrice;
+                        if (qty > productMostQty) { productMostQty = qty; productMostQtyName = prodName; }
                         int detId = -1; try { detId = r.getInt("id_detalle"); } catch (Exception _e) { detId = -1; }
                         if (detId != -1 && !seenItemIds.contains(detId)) { seenItemIds.add(detId); distinctItems++; }
                     }
@@ -229,17 +237,32 @@ public class AdminOrderReportServlet extends HttpServlet {
 
             PdfPTable summaryInner = new PdfPTable(2);
             summaryInner.setWidthPercentage(100);
-            summaryInner.addCell(new PdfPCell(new Phrase("Items distintos", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(distinctItems), normalFont)));
-            summaryInner.addCell(new PdfPCell(new Phrase("Total de unidades", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(totalItems), normalFont)));
-            summaryInner.addCell(new PdfPCell(new Phrase("Subtotal (sin envío)", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + subtotal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
-            summaryInner.addCell(new PdfPCell(new Phrase("Precio unitario mayor", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + highestUnitPrice.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
-            summaryInner.addCell(new PdfPCell(new Phrase("Costo envío", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(costoEnv != null ? ("S/." + costoEnv.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : "S/.0.00", normalFont)));
-            PdfPCell totalLabel = new PdfPCell(new Phrase("Total pedido", labelFont));
-            PdfPCell totalValue = new PdfPCell(new Phrase(total != null ? ("S/." + total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : ("S/." + subtotal.add(costoEnv != null ? costoEnv : BigDecimal.ZERO).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()), normalFont));
-            totalLabel.setGrayFill(0.85f); totalValue.setGrayFill(0.85f);
-            totalLabel.setPadding(6); totalValue.setPadding(6);
-            summaryInner.addCell(totalLabel);
-            summaryInner.addCell(totalValue);
+            BigDecimal igv = subtotal.multiply(new BigDecimal("0.18"));
+            BigDecimal totalCalc = subtotal.add(igv).add(costoEnv != null ? costoEnv : BigDecimal.ZERO);
+
+            summaryInner.addCell(new PdfPCell(new Phrase("Ítems Distintos en el Pedido", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(distinctItems), normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Total de Unidades Pedidas", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(totalItems), normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Producto con Más Unidades", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase((productMostQtyName!=null?productMostQtyName:"-") + " (" + (productMostQty>=0?productMostQty:0) + ")", normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Precio Unitario Mayor", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(highestUnitPrice!=null?"S/."+highestUnitPrice.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString():"N/A", normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Precio Unitario Menor", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(lowestUnitPrice!=null?"S/."+lowestUnitPrice.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString():"N/A", normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Subtotal de Productos", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + subtotal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Impuestos (18% IGV)", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + igv.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Costo de Envío", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(costoEnv != null ? ("S/." + costoEnv.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : "S/.0.00", normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Total a Pagar", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(total != null ? ("S/." + total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : ("S/." + totalCalc.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()), normalFont)));
+
+            String diasRestStr = "-";
+            if (fechaEst != null) {
+                try {
+                    Instant now = Instant.now();
+                    LocalDate nowLocal = now.atZone(ZoneId.systemDefault()).toLocalDate();
+                    LocalDate estLocal = fechaEst.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    long daysBetween = ChronoUnit.DAYS.between(nowLocal, estLocal);
+                    if (daysBetween < 0) daysBetween = 0;
+                    diasRestStr = String.valueOf(daysBetween);
+                } catch (Exception _e) { diasRestStr = "-"; }
+            }
+            summaryInner.addCell(new PdfPCell(new Phrase("Días Restantes para Entrega", labelFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase(diasRestStr, normalFont)));
 
             PdfPTable summaryBox = new PdfPTable(1);
             summaryBox.setWidthPercentage(100);
