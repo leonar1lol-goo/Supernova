@@ -132,6 +132,12 @@ public class AdminOrdersApiServlet extends HttpServlet {
                     String prioridadVal = null; try { prioridadVal = rs.getString("prioridad"); } catch (Exception _e) {}
                     String notas = null; try { notas = rs.getString("notas"); } catch (Exception _e) {}
                     BigDecimal total = null; try { total = rs.getBigDecimal("total"); } catch (Exception _e) {}
+                    BigDecimal displayedTotal = BigDecimal.ZERO;
+                    try {
+                        BigDecimal costoEnv = costoEnvio != null ? costoEnvio : BigDecimal.ZERO;
+                        BigDecimal itemsTotal = total != null ? total : BigDecimal.ZERO;
+                        displayedTotal = itemsTotal.add(costoEnv);
+                    } catch (Exception _e) { displayedTotal = total != null ? total : BigDecimal.ZERO; }
 
                     sb.append('{');
                     sb.append("\"id\":").append(id).append(',');
@@ -147,7 +153,7 @@ public class AdminOrdersApiServlet extends HttpServlet {
                     sb.append("\"metodo_pago\":").append(quote(metodoPago)).append(',');
                     sb.append("\"prioridad\":").append(quote(prioridadVal)).append(',');
                     sb.append("\"notas\":").append(quote(notas)).append(',');
-                    if (total == null) sb.append("\"total\":0"); else sb.append("\"total\":").append(total);
+                    if (displayedTotal == null) sb.append("\"total\":0"); else sb.append("\"total\":").append(displayedTotal);
                     sb.append(',');
                     sb.append("\"totalIsItems\":").append(totalIsItems);
                     sb.append('}');
@@ -193,7 +199,7 @@ public class AdminOrdersApiServlet extends HttpServlet {
                     fsb.append("\"metodo_pago\":").append(quote(metodoPago)).append(',');
                     fsb.append("\"prioridad\":").append(quote(prioridadVal)).append(',');
                     fsb.append("\"notas\":").append(quote(notas)).append(',');
-                    fsb.append("\"total\":0,");
+                    fsb.append("\"total\":").append(costoEnv==null?0:costoEnv).append(',');
                     fsb.append("\"totalIsItems\":true");
                     fsb.append('}');
                 }
@@ -627,9 +633,22 @@ public class AdminOrdersApiServlet extends HttpServlet {
                 ps.setInt(1, orderId);
                 try (ResultSet rs = ps.executeQuery()){
                     if (rs.next()){
-                        BigDecimal total = rs.getBigDecimal("total");
+                        BigDecimal itemsTotal = rs.getBigDecimal("total");
+                        if (itemsTotal == null) itemsTotal = BigDecimal.ZERO;
+                        BigDecimal costoEnvio = BigDecimal.ZERO;
+                        try (PreparedStatement pc = con.prepareStatement("SELECT costo_envio FROM Pedido WHERE id_pedido = ?")){
+                            pc.setInt(1, orderId);
+                            try (ResultSet rc = pc.executeQuery()){
+                                if (rc.next()) {
+                                    BigDecimal c = rc.getBigDecimal(1);
+                                    if (c != null) costoEnvio = c;
+                                }
+                            }
+                        } catch (SQLException _ex) { }
+
+                        BigDecimal totalToStore = itemsTotal.add(costoEnvio);
                         try (PreparedStatement pu = con.prepareStatement("UPDATE Pedido SET " + totalCol + " = ? WHERE id_pedido = ?")){
-                            if (total == null) pu.setBigDecimal(1, BigDecimal.ZERO); else pu.setBigDecimal(1, total);
+                            pu.setBigDecimal(1, totalToStore != null ? totalToStore : BigDecimal.ZERO);
                             pu.setInt(2, orderId);
                             pu.executeUpdate();
                         }
