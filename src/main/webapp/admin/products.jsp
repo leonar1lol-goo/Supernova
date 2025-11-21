@@ -118,13 +118,14 @@
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
                 <h2 style="margin:0">Lista de productos</h2>
                 <div style="display:flex;gap:8px;align-items:center">
-                    <input id="userSearch" class="search-input" placeholder="Buscar usuarios (nombre, email)" />
+                    <input id="userSearch" class="search-input" placeholder="Buscar productos (nombre, marca)" />
                     <select id="userSort" class="sort-select">
                         <option value="id">Orden: ID</option>
                         <option value="nombre">Orden: Nombre</option>
                         <option value="precio">Orden: Precio (asc)</option>
                         <option value="precio_desc">Orden: Precio (desc)</option>
                     </select>
+                    <a href="<%= ctx %>/admin/report/stock" target="_blank" class="btn-ghost" style="margin-left:8px;">Generar reporte PDF</a>
                 </div>
             </div>
 
