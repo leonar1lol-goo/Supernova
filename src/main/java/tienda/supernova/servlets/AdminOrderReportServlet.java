@@ -62,7 +62,7 @@ public class AdminOrderReportServlet extends HttpServlet {
 
             String cliente = null, direccion = null, metodoPago = null, notas = null, estado = null, prioridad = null;
             java.util.Date fecha = null, fechaEst = null;
-            BigDecimal costoEnv = BigDecimal.ZERO, total = null;
+            BigDecimal costoEnv = BigDecimal.ZERO;
             boolean detalleHasPrecio = false;
             Integer clienteId = null;
 
@@ -77,7 +77,6 @@ public class AdminOrderReportServlet extends HttpServlet {
                         fecha = r.getTimestamp("fecha_pedido");
                         fechaEst = r.getTimestamp("fecha_entrega_estimada");
                         costoEnv = r.getBigDecimal("costo_envio") != null ? r.getBigDecimal("costo_envio") : BigDecimal.ZERO;
-                        total = r.getBigDecimal("total");
                         clienteId = r.getObject("id_cliente") != null ? r.getInt("id_cliente") : null;
                     }
                 }
@@ -237,8 +236,8 @@ public class AdminOrderReportServlet extends HttpServlet {
 
             PdfPTable summaryInner = new PdfPTable(2);
             summaryInner.setWidthPercentage(100);
-            BigDecimal igv = subtotal.multiply(new BigDecimal("0.18"));
-            BigDecimal totalCalc = subtotal.add(igv).add(costoEnv != null ? costoEnv : BigDecimal.ZERO);
+                BigDecimal igv = subtotal.multiply(new BigDecimal("0.18"));
+                BigDecimal displayedTotal = subtotal.add(costoEnv != null ? costoEnv : BigDecimal.ZERO);
 
             summaryInner.addCell(new PdfPCell(new Phrase("Ítems Distintos en el Pedido", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(distinctItems), normalFont)));
             summaryInner.addCell(new PdfPCell(new Phrase("Total de Unidades Pedidas", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(String.valueOf(totalItems), normalFont)));
@@ -248,7 +247,7 @@ public class AdminOrderReportServlet extends HttpServlet {
             summaryInner.addCell(new PdfPCell(new Phrase("Subtotal de Productos", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + subtotal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
             summaryInner.addCell(new PdfPCell(new Phrase("Impuestos (18% IGV)", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + igv.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
             summaryInner.addCell(new PdfPCell(new Phrase("Costo de Envío", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(costoEnv != null ? ("S/." + costoEnv.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : "S/.0.00", normalFont)));
-            summaryInner.addCell(new PdfPCell(new Phrase("Total a Pagar", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase(total != null ? ("S/." + total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) : ("S/." + totalCalc.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()), normalFont)));
+            summaryInner.addCell(new PdfPCell(new Phrase("Total a Pagar", labelFont))); summaryInner.addCell(new PdfPCell(new Phrase("S/." + displayedTotal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(), normalFont)));
 
             String diasRestStr = "-";
             if (fechaEst != null) {
