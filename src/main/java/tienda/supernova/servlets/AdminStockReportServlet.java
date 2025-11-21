@@ -18,7 +18,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -121,6 +123,7 @@ public class AdminStockReportServlet extends HttpServlet {
             String itemMostStock = null; long mostStockQty = -1;
             String itemLeastStock = null; long leastStockQty = Long.MAX_VALUE;
             long zeroStockCount = 0L;
+            List<String> zeroStockItems = new ArrayList<>();
             java.math.BigDecimal highestPrice = null;
             java.math.BigDecimal lowestPrice = null;
 
@@ -151,7 +154,7 @@ public class AdminStockReportServlet extends HttpServlet {
 
                         if (stockVal != null) {
                             totalUnits += stockVal;
-                            if (stockVal == 0) zeroStockCount++;
+                            if (stockVal == 0) { zeroStockCount++; zeroStockItems.add(nombre); }
                             if (stockVal > mostStockQty) { mostStockQty = stockVal; itemMostStock = nombre; }
                             if (stockVal < leastStockQty) { leastStockQty = stockVal; itemLeastStock = nombre; }
                             if (precioVal != null) {
@@ -215,6 +218,7 @@ public class AdminStockReportServlet extends HttpServlet {
             }
 
             addRow.accept("Número de Productos con Stock Cero:", String.valueOf(zeroStockCount));
+            addRow.accept("Productos agotados:", zeroStockItems.size() > 0 ? String.join(", ", zeroStockItems) : "-");
 
             doc.add(summary);
 
