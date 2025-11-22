@@ -508,6 +508,18 @@
               modal.setAttribute("aria-hidden", "false");
             });
           }
+
+          try {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get("openDate") === "1") {
+              if (modal) {
+                setTimeout(function () {
+                  modal.classList.add("modal-show");
+                  modal.setAttribute("aria-hidden", "false");
+                }, 60);
+              }
+            }
+          } catch (e) {}
           if (drCancel) {
             drCancel.addEventListener("click", function (ev) {
               ev.preventDefault();
