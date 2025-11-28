@@ -27,16 +27,29 @@ _s.getAttribute("role") : null; if (_role == null ||
               </p>
             </div>
             <div class="admin-table table-scroll">
-              <div
-                style="
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                "
-              >
-                <h2 style="margin: 0">Reportes Disponibles</h2>
-              </div>
+              <div class="admin-table table-scroll">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <h2 style="margin: 0">Reportes Disponibles</h2>
+                </div>
 
+              <div id="stockRangeModal" class="modal-backdrop" aria-hidden="true">
+                <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stockRangeTitle" style="max-width:420px">
+                  <h3 id="stockRangeTitle">Reporte Máx/Mín/Promedio - Rango de Pedidos</h3>
+                  <div class="form-row">
+                    <label for="stockFrom">Desde (fecha):</label>
+                    <input id="stockFrom" type="date" />
+                  </div>
+                  <div class="form-row">
+                    <label for="stockTo">Hasta (fecha):</label>
+                    <input id="stockTo" type="date" />
+                  </div>
+                  <div class="actions" style="justify-content:flex-end">
+                    <button id="stockRangeCancel" class="btn-ghost">Cancelar</button>
+                    <button id="stockRangeGenerate" class="btn-save">Generar PDF</button>
+                  </div>
+                </div>
+              </div>
+              
               <div style="margin-top: 16px">
                 <div
                   style="
@@ -138,7 +151,6 @@ _s.getAttribute("role") : null; if (_role == null ||
                         Generar reporte de estadísticas
                       </button>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -189,8 +201,38 @@ _s.getAttribute("role") : null; if (_role == null ||
           if (b5) {
             b5.addEventListener("click", function (ev) {
               ev.preventDefault();
-              var url = base + "/admin/report/stock-stats";
-              window.open(url, "_blank");
+              if (modal) {
+                modal.classList.add('modal-show');
+                modal.setAttribute('aria-hidden','false');
+              }
+            });
+          }
+
+          var btnRange = document.getElementById('btnOpenStockRange');
+          var modal = document.getElementById('stockRangeModal');
+          var stockRangeCancel = document.getElementById('stockRangeCancel');
+          var stockRangeGenerate = document.getElementById('stockRangeGenerate');
+          var stockFrom = document.getElementById('stockFrom');
+          var stockTo = document.getElementById('stockTo');
+
+          if (btnRange) {
+            btnRange.addEventListener('click', function(ev){
+              ev.preventDefault();
+              if (modal) { modal.classList.add('modal-show'); modal.setAttribute('aria-hidden','false'); }
+            });
+          }
+          if (stockRangeCancel) {
+            stockRangeCancel.addEventListener('click', function(ev){ ev.preventDefault(); if (modal) { modal.classList.remove('modal-show'); modal.setAttribute('aria-hidden','true'); } });
+          }
+          if (stockRangeGenerate) {
+            stockRangeGenerate.addEventListener('click', function(ev){
+              ev.preventDefault();
+              var f = stockFrom && stockFrom.value ? stockFrom.value : '';
+              var t = stockTo && stockTo.value ? stockTo.value : '';
+              if (!f || !t) { alert('Seleccione ambas fechas'); return; }
+              var url = base + '/admin/report/stock-stats?from=' + encodeURIComponent(f) + '&to=' + encodeURIComponent(t);
+              window.open(url, '_blank');
+              if (modal) { modal.classList.remove('modal-show'); modal.setAttribute('aria-hidden','true'); }
             });
           }
         });
