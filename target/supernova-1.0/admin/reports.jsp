@@ -119,6 +119,26 @@ _s.getAttribute("role") : null; if (_role == null ||
                       </button>
                     </div>
                   </div>
+
+                  <div
+                    style="
+                      padding: 16px;
+                      background: #fff;
+                      border-radius: 8px;
+                      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+                    "
+                  >
+                    <h3>Máximo / Mínimo / Promedio (Stock)</h3>
+                    <p class="muted">
+                      Calcula máximo, mínimo y promedio sobre columnas numéricas
+                      de productos.
+                    </p>
+                    <div style="margin-top: 12px">
+                      <button id="btnGenerateStockStats" class="btn-save">
+                        Generar reporte de estadísticas
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -161,6 +181,15 @@ _s.getAttribute("role") : null; if (_role == null ||
             b4.addEventListener("click", function (ev) {
               ev.preventDefault();
               var url = base + "/admin/report/stock";
+              window.open(url, "_blank");
+            });
+          }
+
+          var b5 = document.getElementById("btnGenerateStockStats");
+          if (b5) {
+            b5.addEventListener("click", function (ev) {
+              ev.preventDefault();
+              var url = base + "/admin/report/stock-stats";
               window.open(url, "_blank");
             });
           }
