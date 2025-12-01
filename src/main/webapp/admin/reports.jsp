@@ -50,6 +50,24 @@ _s.getAttribute("role") : null; if (_role == null ||
                 </div>
               </div>
               
+              <div id="indicatorsRangeModal" class="modal-backdrop" aria-hidden="true">
+                <div class="modal" role="dialog" aria-modal="true" aria-labelledby="indicatorsRangeTitle" style="max-width:420px">
+                  <h3 id="indicatorsRangeTitle">Reporte de Indicadores - Rango de Pedidos</h3>
+                  <div class="form-row">
+                    <label for="indicatorsFrom">Desde (fecha):</label>
+                    <input id="indicatorsFrom" type="date" />
+                  </div>
+                  <div class="form-row">
+                    <label for="indicatorsTo">Hasta (fecha):</label>
+                    <input id="indicatorsTo" type="date" />
+                  </div>
+                  <div class="actions" style="justify-content:flex-end">
+                    <button id="indicatorsRangeCancel" class="btn-ghost">Cancelar</button>
+                    <button id="indicatorsRangeGenerate" class="btn-save">Generar PDF</button>
+                  </div>
+                </div>
+              </div>
+              
               <div style="margin-top: 16px">
                 <div
                   style="
@@ -152,6 +170,25 @@ _s.getAttribute("role") : null; if (_role == null ||
                       </button>
                     </div>
                 </div>
+
+                  <div
+                    style="
+                      padding: 16px;
+                      background: #fff;
+                      border-radius: 8px;
+                      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+                    "
+                  >
+                    <h3>Reporte de Indicadores</h3>
+                    <p class="muted">
+                      Calcula porcentaje entregados a tiempo, VPP y tasa de pendientes para un rango.
+                    </p>
+                    <div style="margin-top: 12px">
+                      <button id="btnGenerateIndicators" class="btn-save">
+                        Generar reporte de indicadores
+                      </button>
+                    </div>
+                  </div>
               </div>
             </div>
           </div>
@@ -233,6 +270,31 @@ _s.getAttribute("role") : null; if (_role == null ||
               var url = base + '/admin/report/stock-stats?from=' + encodeURIComponent(f) + '&to=' + encodeURIComponent(t);
               window.open(url, '_blank');
               if (modal) { modal.classList.remove('modal-show'); modal.setAttribute('aria-hidden','true'); }
+            });
+          }
+
+          var indicatorsBtn = document.getElementById('btnGenerateIndicators');
+          var indicatorsModal = document.getElementById('indicatorsRangeModal');
+          var indicatorsCancel = document.getElementById('indicatorsRangeCancel');
+          var indicatorsGenerate = document.getElementById('indicatorsRangeGenerate');
+          var indicatorsFrom = document.getElementById('indicatorsFrom');
+          var indicatorsTo = document.getElementById('indicatorsTo');
+
+          if (indicatorsBtn) {
+            indicatorsBtn.addEventListener('click', function(ev){ ev.preventDefault(); if (indicatorsModal) { indicatorsModal.classList.add('modal-show'); indicatorsModal.setAttribute('aria-hidden','false'); } });
+          }
+          if (indicatorsCancel) {
+            indicatorsCancel.addEventListener('click', function(ev){ ev.preventDefault(); if (indicatorsModal) { indicatorsModal.classList.remove('modal-show'); indicatorsModal.setAttribute('aria-hidden','true'); } });
+          }
+          if (indicatorsGenerate) {
+            indicatorsGenerate.addEventListener('click', function(ev){
+              ev.preventDefault();
+              var f = indicatorsFrom && indicatorsFrom.value ? indicatorsFrom.value : '';
+              var t = indicatorsTo && indicatorsTo.value ? indicatorsTo.value : '';
+              if (!f || !t) { alert('Seleccione ambas fechas'); return; }
+              var url = base + '/admin/report/indicators?from=' + encodeURIComponent(f) + '&to=' + encodeURIComponent(t);
+              window.open(url, '_blank');
+              if (indicatorsModal) { indicatorsModal.classList.remove('modal-show'); indicatorsModal.setAttribute('aria-hidden','true'); }
             });
           }
         });
