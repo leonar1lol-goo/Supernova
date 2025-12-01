@@ -480,7 +480,7 @@ public class AdminStockStatsReportServlet extends HttpServlet {
 
                         doc.add(table);
 
-                        String clientCol = pickExisting(orderCols, new String[]{"cliente_id","cliente","cliente_nombre","cliente_nombre_completo","cliente_id","cliente_nombre","cliente_email","email","nombre_cliente"});
+                        String clientCol = pickExisting(orderCols, new String[]{"id_cliente","cliente_id","cliente","cliente_nombre","cliente_nombre_completo","cliente_nombre","cliente_email","email","nombre_cliente"});
                         String totalCol = pickExisting(orderCols, new String[]{"total","total_pedido","monto","importe","amount","order_total"});
                         PdfPTable ordersTable = new PdfPTable(new float[]{1f,2f,3f,2f});
                         ordersTable.setWidthPercentage(100);
@@ -489,10 +489,35 @@ public class AdminStockStatsReportServlet extends HttpServlet {
                         ordersTable.addCell(new PdfPCell(new Phrase("Cliente", labelFont)));
                         ordersTable.addCell(new PdfPCell(new Phrase("Total", labelFont)));
 
-                        String selectCols = orderIdCol + ", " + orderDateCol;
-                        if (clientCol!=null) selectCols += ", "+clientCol;
-                        if (totalCol!=null) selectCols += ", "+totalCol;
-                        String sqlOrders = "SELECT " + selectCols + " FROM "+orderTable+" o WHERE " + where + " ORDER BY o."+orderDateCol+" ASC";
+                        String selectCols = "o."+orderIdCol + ", o." + orderDateCol;
+                        String joinClient = "";
+                        String clientAliasCol = null;
+                        if (clientCol!=null) {
+                            String[] clientCandidates = new String[]{"cliente","clientes","customer","customers","usuario","usuarios","users"};
+                            String clientTable = null;
+                            for (String t: clientCandidates) if (tableExists(con,t)) { clientTable = t; break; }
+                            if (clientTable!=null) {
+                                Set<String> clientCols = getColumns(con, clientTable);
+                                String clientIdCol = pickExisting(clientCols, new String[]{"id","id_cliente","cliente_id","customer_id","id_user","id_usuario","usuario_id"});
+                                String clientNameCol = pickExisting(clientCols, new String[]{"nombre","nombre_completo","fullname","full_name","name","nombre_cliente","cliente_nombre","email","usuario"});
+                                if (clientIdCol!=null && clientNameCol!=null) {
+                                    joinClient = " LEFT JOIN "+clientTable+" c ON c."+clientIdCol+" = o."+clientCol;
+                                    selectCols += ", COALESCE(c."+clientNameCol+", o."+clientCol+") AS cliente";
+                                    clientAliasCol = "cliente";
+                                } else {
+                                    selectCols += ", o."+clientCol+" AS cliente";
+                                    clientAliasCol = "cliente";
+                                }
+                            } else {
+                                selectCols += ", o."+clientCol+" AS cliente";
+                                clientAliasCol = "cliente";
+                            }
+                        } else {
+                            selectCols += ", '' AS cliente";
+                            clientAliasCol = "cliente";
+                        }
+                        if (totalCol!=null) selectCols += ", o."+totalCol;
+                        String sqlOrders = "SELECT " + selectCols + " FROM "+orderTable+" o" + joinClient + " WHERE " + where + " ORDER BY o."+orderDateCol+" ASC";
 
                         List<Object> selectedOrderIds = new ArrayList<>();
                         try (PreparedStatement ps2 = con.prepareStatement(sqlOrders)) {
@@ -504,7 +529,8 @@ public class AdminStockStatsReportServlet extends HttpServlet {
                                     Object oid = rs2.getObject(orderIdCol);
                                     selectedOrderIds.add(oid);
                                     Object ofe = rs2.getObject(orderDateCol);
-                                    String cli = clientCol!=null? String.valueOf(rs2.getObject(clientCol)) : "";
+                                    String cli = "";
+                                    try { Object cobj = rs2.getObject(clientAliasCol!=null?clientAliasCol:clientCol); if (cobj!=null) cli = String.valueOf(cobj); } catch (Exception ex) { cli = clientCol!=null? String.valueOf(rs2.getObject(clientCol)) : ""; }
                                     String tot = totalCol!=null? (rs2.getObject(totalCol)==null?"":("S/."+df2.format(rs2.getDouble(totalCol)))) : "";
                                     ordersTable.addCell(new PdfPCell(new Phrase(String.valueOf(oid), normalFont)));
                                     ordersTable.addCell(new PdfPCell(new Phrase(String.valueOf(ofe), normalFont)));

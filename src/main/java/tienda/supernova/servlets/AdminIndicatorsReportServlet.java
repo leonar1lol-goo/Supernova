@@ -138,6 +138,8 @@ public class AdminIndicatorsReportServlet extends HttpServlet {
             }
 
             PdfPTable t1 = new PdfPTable(new float[]{6f,4f}); t1.setWidthPercentage(90);
+            t1.setSpacingBefore(12f);
+            t1.setSpacingAfter(8f);
             t1.addCell(new PdfPCell(new Phrase("Indicador", labelFont)));
             t1.addCell(new PdfPCell(new Phrase("Valor", labelFont)));
             t1.addCell(new PdfPCell(new Phrase("Porcentaje de Pedidos Entregados a Tiempo", normalFont)));
@@ -191,6 +193,8 @@ public class AdminIndicatorsReportServlet extends HttpServlet {
             }
 
             PdfPTable t2 = new PdfPTable(new float[]{6f,4f}); t2.setWidthPercentage(90);
+            t2.setSpacingBefore(12f);
+            t2.setSpacingAfter(8f);
             t2.addCell(new PdfPCell(new Phrase("Indicador", labelFont)));
             t2.addCell(new PdfPCell(new Phrase("Valor", labelFont)));
             t2.addCell(new PdfPCell(new Phrase("Valor Promedio del Pedido (VPP)", normalFont)));
@@ -224,6 +228,8 @@ public class AdminIndicatorsReportServlet extends HttpServlet {
             }
 
             PdfPTable t3 = new PdfPTable(new float[]{6f,4f}); t3.setWidthPercentage(90);
+            t3.setSpacingBefore(12f);
+            t3.setSpacingAfter(8f);
             t3.addCell(new PdfPCell(new Phrase("Indicador", labelFont)));
             t3.addCell(new PdfPCell(new Phrase("Valor", labelFont)));
             t3.addCell(new PdfPCell(new Phrase("Tasa de Pedidos Pendientes", normalFont)));
