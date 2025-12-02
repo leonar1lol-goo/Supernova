@@ -89,16 +89,16 @@ public class AdminStockStatsReportServlet extends HttpServlet {
                     PdfPCell cLogo = new PdfPCell(logo, false); cLogo.setBorder(Rectangle.NO_BORDER);
                     header.addCell(cLogo);
                     PdfPCell cRight = new PdfPCell(); cRight.setBorder(Rectangle.NO_BORDER);
-                    cRight.addElement(new Phrase("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - STOCK", titleFont));
+                    cRight.addElement(new Phrase("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - PEDIDOS", titleFont));
                     cRight.addElement(new Phrase("Generado: "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()), normalFont));
                     header.addCell(cRight);
                     doc.add(header);
                 } else {
-                    doc.add(new Paragraph("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - STOCK", titleFont));
+                    doc.add(new Paragraph("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - PEDIDOS", titleFont));
                     doc.add(new Paragraph("Generado: "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()), normalFont));
                 }
             } catch (Exception e) {
-                doc.add(new Paragraph("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - STOCK", titleFont));
+                doc.add(new Paragraph("REPORTE: MÁXIMO / MÍNIMO / PROMEDIO - PEDIDOS", titleFont));
             }
 
             doc.add(new Paragraph(" "));

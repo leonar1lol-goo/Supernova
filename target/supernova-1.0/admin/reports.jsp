@@ -159,10 +159,10 @@ _s.getAttribute("role") : null; if (_role == null ||
                       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
                     "
                   >
-                    <h3>Máximo / Mínimo / Promedio (Stock)</h3>
+                    <h3>Máximo / Mínimo / Promedio (Pedidos)</h3>
                     <p class="muted">
                       Calcula máximo, mínimo y promedio sobre columnas numéricas
-                      de productos.
+                      de los pedidos.
                     </p>
                     <div style="margin-top: 12px">
                       <button id="btnGenerateStockStats" class="btn-save">
