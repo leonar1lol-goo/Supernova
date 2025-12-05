@@ -1,0 +1,17 @@
+tienda\supernova\servlets\AdminStockReportServlet.class
+tienda\supernova\servlets\AdminOrdersApiServlet.class
+tienda\supernova\servlets\AdminOrdersDateReportServlet.class
+tienda\supernova\servlets\AccountServlet.class
+tienda\supernova\servlets\AdminUserServlet.class
+tienda\supernova\servlets\AdminProductosApiServlet.class
+tienda\supernova\servlets\AdminIndicatorsReportServlet.class
+tienda\supernova\servlets\AdminDeletedRecordsReportServlet.class
+tienda\supernova\filters\AdminFilter.class
+tienda\supernova\servlets\AdminDashboardServlet.class
+tienda\supernova\servlets\AdminOrderReportServlet.class
+tienda\supernova\servlets\DashboardDataServlet.class
+tienda\supernova\servlets\AdminUsersApiServlet.class
+tienda\supernova\servlets\LoginServlet.class
+tienda\supernova\db\DBConnection.class
+tienda\supernova\servlets\AdminClientesApiServlet.class
+tienda\supernova\servlets\AdminStockStatsReportServlet.class
